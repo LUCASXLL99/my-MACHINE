@@ -230,7 +230,7 @@
     python3 python312Packages.pip
 
     # --- Programação: C/C++ ---
-    gcc libstdcxx5 stdenv.cc.cc
+    gcc stdenv.cc.cc
 
     # --- Programação: Java / Android ---
     zulu8 openjdk11 jdk17 jdk21
