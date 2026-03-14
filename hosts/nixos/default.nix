@@ -205,7 +205,7 @@
         "usb" "disk" "cdrom"
       ];
       hashedPassword = "$6$6PEfHzY1BpSqVGXG$j1j7Chn4nt3ehnojWM2mZMaof2LhA2MTN48MNGFzlqZPHjxbgMatRWNU34D6yC5aoeGk1pVc9aTQzc07Px.s8.";
-      packages = with pkgs; [ kate ];
+      packages = with pkgs; [ kdePackages.kate ];
     };
   };
 
