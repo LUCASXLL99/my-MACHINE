@@ -88,8 +88,8 @@
   # ============================================================
   services.xserver = {
     enable     = true;
-    layout     = "br";
-    xkbVariant = "nodeadkeys";
+    xkb.layout  = "br";
+    xkb.variant = "nodeadkeys";
     desktopManager.plasma5.enable  = true;
     windowManager.bspwm.enable     = true;
     displayManager = {};
@@ -243,9 +243,6 @@
     spice spice-gtk spice-protocol libguestfs libusb1 usbutils
 
     # --- VirtualBox ---
-    linuxKernel.packages.linux_zen.virtualbox
-    linuxKernel.packages.linux_xanmod_stable.virtualbox
-    linuxKernel.packages.linux_lqx.virtualbox
 
     # --- QMK / Teclado ---
     qmk qmk-udev-rules qmk_hid via vial kanata-with-cmd
