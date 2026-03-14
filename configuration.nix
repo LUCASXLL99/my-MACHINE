@@ -299,7 +299,6 @@
 
     # --- VirtualBox (módulos para kernels alternativos) ---
     linuxKernel.packages.linux_zen.virtualbox
-    linuxKernel.packages.linux_xanmod_stable.virtualbox
     linuxKernel.packages.linux_lqx.virtualbox
 
     # --- QMK / Teclado ---
