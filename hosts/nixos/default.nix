@@ -240,7 +240,7 @@
     docker qemu qemu_kvm virt-manager libvirt acl polkit
 
     # --- SPICE ---
-    spice spice-gtk spice-protocol libguestfs libusb usbutils
+    spice spice-gtk spice-protocol libguestfs libusb1 usbutils
 
     # --- VirtualBox ---
     linuxKernel.packages.linux_zen.virtualbox
