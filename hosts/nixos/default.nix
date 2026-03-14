@@ -224,7 +224,7 @@
 
     # --- Browser / Produtividade ---
     vivaldi obsidian onlyoffice-bin_latest
-    gnome.gnome-disk-utility
+    gnome-disk-utility
 
     # --- Programação: Python ---
     python3 python312Packages.pip
