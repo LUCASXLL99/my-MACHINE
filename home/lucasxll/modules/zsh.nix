@@ -14,6 +14,18 @@
       plugins = [ "git" "docker" "sudo" "history" ];
     };
     shellAliases = {
+# Rebuild rápido — pode rodar de qualquer pasta
+  rebuild = "cd /etc/nixos && sudo git add . && sudo nixos-rebuild switch --flake .#nixos";
+  rebuild-test = "cd /etc/nixos && sudo git add . && sudo nixos-rebuild test --flake .#nixos";
+  rebuild-dry  = "cd /etc/nixos && sudo git add . && sudo nixos-rebuild dry-activate --flake .#nixos";
+
+  # Git do nixos de qualquer lugar
+  nixgit = "git -C /etc/nixos";
+
+
+
+
+
       # Gerenciadores de arquivo
       f    = "yazi";
       fm   = "thunar . &";
