@@ -54,7 +54,7 @@
   # ── HARDWARE ─────────────────────────────────────────────────
   hardware.bluetooth.enable    = true;
   hardware.keyboard.qmk.enable = true;
-  services.pulseaudio.enable   = false;
+  hardware.pulseaudio.enable = false;
 
   # ── DISPLAY ──────────────────────────────────────────────────
   services.xserver = {
