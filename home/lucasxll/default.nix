@@ -6,6 +6,7 @@
 
 {
   imports = [
+    ./modules/screen-reflect.nix
     ./modules/bspwm.nix
     ./modules/polybar.nix
     ./modules/picom.nix

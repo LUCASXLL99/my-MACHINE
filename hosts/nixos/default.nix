@@ -8,7 +8,7 @@
   imports = [
     ./hardware-configuration.nix
     ../../modules/nixos/hardware/input-left-handed.nix
-    ../../modules/nixos/hardware/screen-reflect-x.nix
+  #  ../../modules/nixos/hardware/screen-reflect-x.nix
     ../../modules/nixos/hardware/kanata-keyboard
     ../../modules/nixos/software/secret-service.nix
     ../../modules/nixos/software/yazi-deps.nix
