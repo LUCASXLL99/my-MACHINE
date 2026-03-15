@@ -184,5 +184,6 @@
         prev.makeModulesClosure (x // { allowMissing = true; });
     })
   ];   
+  boot.initrd.includeDefaultModules = false;
   system.stateVersion = "25.05";
 }
