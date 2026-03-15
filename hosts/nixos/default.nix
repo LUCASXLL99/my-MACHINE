@@ -34,7 +34,7 @@
   # BOOT
   # ============================================================
   boot = {
-
+       kernelPackages = pkgs.linuxPackages_6_1;
     loader = {
       systemd-boot.enable      = true;
       efi.canTouchEfiVariables = true;
@@ -46,7 +46,12 @@
     '';
   };
 
-
+# Desativa compressão de módulos do kernel (evita bug modules-shrunk)
+nixpkgs.overlays = [
+  (final: prev: {
+    makeModulesClosure = x: prev.makeModulesClosure (x // { allowMissing = true; });
+  })
+];
   # ============================================================
   # REDE
   # ============================================================
@@ -272,5 +277,9 @@
     options   = "--delete-older-than 14d";
   };
 
+  boot.kernelPackages = pkgs.linuxPackages_6_1;
+  boot.initrd.compressor = "zstd";
+  nixpkgs.config.allowBroken = true;
   system.stateVersion = "25.05";
 }
+  boot.initrd.includeDefaultModules = false;
