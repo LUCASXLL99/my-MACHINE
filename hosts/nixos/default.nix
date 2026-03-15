@@ -277,9 +277,6 @@ nixpkgs.overlays = [
     options   = "--delete-older-than 14d";
   };
 
-  boot.kernelPackages = pkgs.linuxPackages_6_1;
-  boot.initrd.compressor = "zstd";
-  nixpkgs.config.allowBroken = true;
   system.stateVersion = "25.05";
 }
   boot.initrd.includeDefaultModules = false;
