@@ -39,7 +39,6 @@
       systemd-boot.enable      = true;
       efi.canTouchEfiVariables = true;
     };
-    kernelPackages = pkgs.linuxPackages_6_1;
     kernelModules = [ "kvm-amd" "kvm-intel" "usbcore" "usbhid" ];
     extraModprobeConfig = ''
       options usbcore autosuspend=2
