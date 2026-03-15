@@ -177,6 +177,12 @@
     dates     = "weekly";
     options   = "--delete-older-than 14d";
   };
-
+    # Workaround bug modules-shrunk NixOS 25.05
+  nixpkgs.overlays = [
+    (_: prev: {
+      makeModulesClosure = x:
+        prev.makeModulesClosure (x // { allowMissing = true; });
+    })
+  ];   
   system.stateVersion = "25.05";
 }
