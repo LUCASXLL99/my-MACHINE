@@ -7,161 +7,99 @@
 {
   imports = [
     ./hardware-configuration.nix
-
-    # ── Módulos de hardware ──────────────────────────────────
     ../../modules/nixos/hardware/input-left-handed.nix
     ../../modules/nixos/hardware/screen-reflect-x.nix
     ../../modules/nixos/hardware/kanata-keyboard
-
-    # ── Módulos de software do sistema ──────────────────────
     ../../modules/nixos/software/secret-service.nix
     ../../modules/nixos/software/yazi-deps.nix
-
-    # ── Home Manager integrado ao sistema ───────────────────
     inputs.home-manager.nixosModules.home-manager
   ];
 
-  # ── Home Manager ────────────────────────────────────────────
   home-manager = {
-    useGlobalPkgs   = true;   # usa o mesmo nixpkgs do sistema
-    useUserPackages = true;   # instala pacotes do home no perfil do usuário
+    useGlobalPkgs    = true;
+    useUserPackages  = true;
     extraSpecialArgs = { inherit inputs; };
-    users.lucasxll = import ../../home/lucasxll/default.nix;
+    users.lucasxll   = import ../../home/lucasxll/default.nix;
   };
 
-
-  # ============================================================
-  # BOOT
-  # ============================================================
+  # ── BOOT ─────────────────────────────────────────────────────
   boot = {
-       kernelPackages = pkgs.linuxPackages_6_1;
-      initrd.shrinkModules = false;
-      
+    kernelPackages = pkgs.linuxPackages_6_1;
     loader = {
       systemd-boot.enable      = true;
       efi.canTouchEfiVariables = true;
     };
-    kernelModules = [ "kvm-amd" "kvm-intel" "usbcore" "usbhid" ];
-    extraModprobeConfig = ''
-      options usbcore autosuspend=2
-    '';
+    kernelModules = [ "kvm-amd" "kvm-intel" "usbcore" "usbhid" "uinput" ];
+    extraModprobeConfig = "options usbcore autosuspend=2";
   };
 
-# Desativa compressão de módulos do kernel (evita bug modules-shrunk)
-nixpkgs.overlays = [
-  (final: prev: {
-    makeModulesClosure = x: prev.makeModulesClosure (x // { allowMissing = true; });
-  })
-];
-  # ============================================================
-  # REDE
-  # ============================================================
+  # ── REDE ─────────────────────────────────────────────────────
   networking = {
     hostName              = "nixos";
     networkmanager.enable = true;
   };
 
-
-  # ============================================================
-  # LOCALIZAÇÃO
-  # ============================================================
+  # ── LOCALIZAÇÃO ──────────────────────────────────────────────
   time.timeZone      = "America/Belem";
   i18n.defaultLocale = "en_US.UTF-8";
   i18n.extraLocaleSettings = {
-    LC_ADDRESS        = "pt_BR.UTF-8";
-    LC_IDENTIFICATION = "pt_BR.UTF-8";
-    LC_MEASUREMENT    = "pt_BR.UTF-8";
-    LC_MONETARY       = "pt_BR.UTF-8";
-    LC_NAME           = "pt_BR.UTF-8";
-    LC_NUMERIC        = "pt_BR.UTF-8";
-    LC_PAPER          = "pt_BR.UTF-8";
-    LC_TELEPHONE      = "pt_BR.UTF-8";
-    LC_TIME           = "pt_BR.UTF-8";
+    LC_ADDRESS = "pt_BR.UTF-8"; LC_IDENTIFICATION = "pt_BR.UTF-8";
+    LC_MEASUREMENT = "pt_BR.UTF-8"; LC_MONETARY = "pt_BR.UTF-8";
+    LC_NAME = "pt_BR.UTF-8"; LC_NUMERIC = "pt_BR.UTF-8";
+    LC_PAPER = "pt_BR.UTF-8"; LC_TELEPHONE = "pt_BR.UTF-8";
+    LC_TIME = "pt_BR.UTF-8";
   };
   console.keyMap = "br-abnt2";
 
+  # ── HARDWARE ─────────────────────────────────────────────────
+  hardware.bluetooth.enable    = true;
+  hardware.keyboard.qmk.enable = true;
+  services.pulseaudio.enable   = false;
 
-  # ============================================================
-  # HARDWARE
-  # ============================================================
-  hardware = {
-    bluetooth.enable    = true;
-    pulseaudio.enable   = false;
-    keyboard.qmk.enable = true;
-  };
-
-
-  # ============================================================
-  # DISPLAY / DESKTOP
-  # ============================================================
+  # ── DISPLAY ──────────────────────────────────────────────────
   services.xserver = {
-    enable     = true;
+    enable      = true;
     xkb.layout  = "br";
     xkb.variant = "nodeadkeys";
-    desktopManager.plasma5.enable  = true;
-    windowManager.bspwm.enable     = true;
-    displayManager = {};
+    desktopManager.plasma5.enable = true;
+    windowManager.bspwm.enable    = true;
   };
-
   services.displayManager.sddm.enable = true;
 
-
-  # ============================================================
-  # ÁUDIO
-  # ============================================================
+  # ── ÁUDIO ────────────────────────────────────────────────────
   security.rtkit.enable = true;
   services.pipewire = {
-    enable            = true;
-    alsa.enable       = true;
-    alsa.support32Bit = true;
-    pulse.enable      = true;
+    enable = true; alsa.enable = true;
+    alsa.support32Bit = true; pulse.enable = true;
   };
 
-
-  # ============================================================
-  # IMPRESSÃO
-  # ============================================================
+  # ── IMPRESSÃO ────────────────────────────────────────────────
   services.printing.enable = true;
 
-
-  # ============================================================
-  # ENERGIA
-  # ============================================================
+  # ── ENERGIA ──────────────────────────────────────────────────
   services.power-profiles-daemon.enable = false;
   services.auto-cpufreq = {
-    enable   = true;
+    enable = true;
     settings = {
       battery = { governor = "powersave"; turbo = "never"; };
       charger = { governor = "powersave"; turbo = "never"; };
     };
   };
 
-
-  # ============================================================
-  # VIRTUALIZAÇÃO
-  # ============================================================
+  # ── VIRTUALIZAÇÃO ────────────────────────────────────────────
   virtualisation.docker.enable = true;
 
-
-  # ============================================================
-  # SERVIÇOS DO SISTEMA
-  # ============================================================
+  # ── SERVIÇOS ─────────────────────────────────────────────────
   services.dbus.enable           = true;
   services.spice-vdagentd.enable = true;
 
-
-  # ============================================================
-  # XDG / PORTAIS
-  # ============================================================
+  # ── XDG ──────────────────────────────────────────────────────
   xdg.portal = {
     enable       = true;
     extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
   };
 
-
-  # ============================================================
-  # PROGRAMAS DO SISTEMA
-  # ============================================================
+  # ── PROGRAMAS ────────────────────────────────────────────────
   programs = {
     firefox.enable = false;
     nix-ld = {
@@ -169,7 +107,7 @@ nixpkgs.overlays = [
       libraries = with pkgs; [ stdenv.cc.cc glibc ];
     };
     zsh = {
-      enable                    = true;
+      enable = true;
       autosuggestions.enable    = true;
       syntaxHighlighting.enable = true;
       enableCompletion          = true;
@@ -181,19 +119,13 @@ nixpkgs.overlays = [
     };
   };
 
-
-  # ============================================================
-  # FONTES
-  # ============================================================
+  # ── FONTES ───────────────────────────────────────────────────
   fonts.packages = with pkgs; [
     nerd-fonts.jetbrains-mono
     noto-fonts
   ];
 
-
-  # ============================================================
-  # USUÁRIOS
-  # ============================================================
+  # ── USUÁRIOS ─────────────────────────────────────────────────
   users.groups.yurii = {};
   users.users = {
     yurii = {
@@ -217,61 +149,29 @@ nixpkgs.overlays = [
     };
   };
 
-
-  # ============================================================
-  # PACOTES DO SISTEMA
-  # ============================================================
+  # ── PACOTES ──────────────────────────────────────────────────
   nixpkgs.config.allowUnfree = true;
 
   environment.systemPackages = with pkgs; [
-    # --- Utilitários base ---
     vim git wget htop fastfetch
-
-    # --- Terminais ---
     kitty wezterm
-
-    # --- Browser / Produtividade ---
-    vivaldi obsidian onlyoffice-bin_latest
-    gnome-disk-utility
-
-    # --- Programação: Python ---
+    vivaldi obsidian onlyoffice-bin_latest gnome-disk-utility
     python3 python312Packages.pip
-
-    # --- Programação: C/C++ ---
     gcc stdenv.cc.cc
-
-    # --- Programação: Java / Android ---
     zulu8 openjdk11 jdk17 jdk21
     maven android-studio android-tools cargo-ndk gradle
-
-    # --- Infraestrutura ---
     docker qemu qemu_kvm virt-manager libvirt acl polkit
-
-    # --- SPICE ---
     spice spice-gtk spice-protocol libguestfs libusb1 usbutils
-
-    # --- VirtualBox ---
-
-    # --- QMK / Teclado ---
     qmk qmk-udev-rules qmk_hid via vial kanata-with-cmd
-
-    # --- bspwm ---
-    sxhkd  # sxhkd precisa estar no sistema
-
-    # --- Outros ---
+    sxhkd
     auto-cpufreq libnotify
   ];
 
-
-  # ============================================================
-  # NIX
-  # ============================================================
+  # ── NIX ──────────────────────────────────────────────────────
   nix.settings = {
     experimental-features = [ "nix-command" "flakes" ];
-    # Otimizações de build
-    auto-optimise-store = true;
+    auto-optimise-store   = true;
   };
-
   nix.gc = {
     automatic = true;
     dates     = "weekly";
