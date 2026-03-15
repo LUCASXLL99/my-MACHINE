@@ -278,4 +278,3 @@ nixpkgs.overlays = [
 
   system.stateVersion = "25.05";
 }
-  boot.initrd.includeDefaultModules = false;
