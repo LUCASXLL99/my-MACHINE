@@ -159,7 +159,6 @@
     python3 python312Packages.pip
     gcc stdenv.cc.cc
     zulu8 openjdk11 jdk17 jdk21
-    maven android-studio android-tools cargo-ndk gradle
     docker qemu qemu_kvm virt-manager libvirt acl polkit
     spice spice-gtk spice-protocol libguestfs libusb1 usbutils
     qmk qmk-udev-rules qmk_hid via vial kanata-with-cmd
