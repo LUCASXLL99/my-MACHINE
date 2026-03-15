@@ -35,6 +35,7 @@
   # ============================================================
   boot = {
        kernelPackages = pkgs.linuxPackages_6_1;
+      shrinkModules = false;
     loader = {
       systemd-boot.enable      = true;
       efi.canTouchEfiVariables = true;
