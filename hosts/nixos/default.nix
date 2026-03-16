@@ -6,6 +6,7 @@
 
 {
   imports = [
+    ../../modules/nixos/hardware/sddm-reflect.nix
     ./hardware-configuration.nix
     ../../modules/nixos/hardware/input-left-handed.nix
   #  ../../modules/nixos/hardware/screen-reflect-x.nix

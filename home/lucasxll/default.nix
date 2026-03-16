@@ -6,6 +6,7 @@
 
 {
   imports = [
+    ./modules/terminals.nix
     ./modules/screen-reflect.nix
     ./modules/bspwm.nix
     ./modules/polybar.nix
