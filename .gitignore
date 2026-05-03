@@ -1,0 +1,16 @@
+# Vim
+*.swp
+*.swo
+*.swn
+
+# Zips e backups extraídos dentro do repo
+*.zip
+minha_configuracao_v2/
+nixos_modified/
+
+# Resultado de extrações acidentais de zips
+nixos/
+
+# Nix
+result
+result-*

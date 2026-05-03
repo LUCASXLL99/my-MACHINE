@@ -2,7 +2,61 @@
 
 { pkgs, ... }:
 
+let
+  # Volume via wpctl — funciona com qualquer sink (fone BT, caixa, etc)
+  volUp     = pkgs.writeShellScript "vol-up"     "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+";
+  volDown   = pkgs.writeShellScript "vol-down"   "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-";
+  volMute   = pkgs.writeShellScript "vol-mute"   "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle";
+  volStatus = pkgs.writeShellScript "vol-status" ''
+    INFO=$(wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null)
+    VOL=$(echo "$INFO" | awk '{printf "%d", $2 * 100}')
+    if echo "$INFO" | grep -q MUTED; then
+      echo "%{F#f85149}󰝟 MUDO%{F-}"
+    elif [ "$VOL" -ge 70 ]; then
+      echo "%{F#8b949e}󰕾 $VOL%%%{F-}"
+    elif [ "$VOL" -ge 30 ]; then
+      echo "%{F#8b949e}󰖀 $VOL%%%{F-}"
+    else
+      echo "%{F#8b949e}󰕿 $VOL%%%{F-}"
+    fi
+  '';
+
+  # Luz noturna
+  nightUp = pkgs.writeShellScript "night-up" ''
+    T=$(cat /tmp/nl 2>/dev/null || echo 6500)
+    T=$(( T - 200 ))
+    [ $T -lt 1500 ] && T=1500
+    echo $T > /tmp/nl
+    redshift -P -O $T &
+  '';
+  nightDown = pkgs.writeShellScript "night-down" ''
+    T=$(cat /tmp/nl 2>/dev/null || echo 6500)
+    T=$(( T + 200 ))
+    [ $T -gt 6500 ] && T=6500
+    echo $T > /tmp/nl
+    if [ $T -ge 6500 ]; then redshift -x &
+    else redshift -P -O $T &
+    fi
+  '';
+  nightToggle = pkgs.writeShellScript "night-toggle" ''
+    T=$(cat /tmp/nl 2>/dev/null || echo 6500)
+    if [ $T -ge 6500 ]; then
+      echo 3000 > /tmp/nl; redshift -P -O 3000 &
+    else
+      echo 6500 > /tmp/nl; redshift -x &
+    fi
+  '';
+  nightIcon = pkgs.writeShellScript "night-icon" ''
+    T=$(cat /tmp/nl 2>/dev/null || echo 6500)
+    if   [ $T -ge 6500 ]; then echo "%{F#8b949e}󰖔%{F-}"
+    elif [ $T -ge 4000 ]; then echo "%{F#d29922}󰖔%{F-}"
+    else                        echo "%{F#f85149}󰖔%{F-}"
+    fi
+  '';
+in
 {
+  home.packages = with pkgs; [ redshift ];
+
   services.polybar = {
     enable  = true;
     package = pkgs.polybar.override { pulseSupport = true; };
@@ -27,7 +81,7 @@
         font-2 = "Noto Sans:size=10;2";
         modules-left   = "bspwm";
         modules-center = "clock";
-        modules-right  = "cpu memory battery volume";
+        modules-right  = "nightlight cpu memory battery volume";
         padding-left = 1; padding-right = 2; module-margin = 1;
         tray-position = "right"; tray-padding = 4;
         tray-background = "\${colors.bg}";
@@ -69,24 +123,37 @@
       "module/battery" = {
         type    = "internal/battery";
         full-at = 99; low-at = 20;
-        battery = "BAT0"; adapter = "AC";
-        label-full              = "BAT FULL";
-        label-full-foreground   = "\${colors.green}";
-        label-charging          = "BAT %percentage%%+";
-        label-charging-foreground = "\${colors.yellow}";
-        label-discharging       = "BAT %percentage%%";
+        battery = "BAT1"; adapter = "ACAD";
+        poll-interval = 5;
+        label-full                   = "󰁹 FULL";
+        label-full-foreground        = "\${colors.green}";
+        label-charging               = "󰂄 %percentage%%";
+        label-charging-foreground    = "\${colors.yellow}";
+        label-discharging            = "󰁾 %percentage%%";
         label-discharging-foreground = "\${colors.fg-dim}";
-        label-low               = "BAT LOW %percentage%%";
-        label-low-foreground    = "\${colors.red}";
+        label-low                    = "󰁺 %percentage%%";
+        label-low-foreground         = "\${colors.red}";
       };
 
+      # Volume via wpctl — segue o sink padrão automaticamente (fone BT, caixa, etc)
+      # scroll = ajusta volume, clique esq = mute, clique dir = pavucontrol
       "module/volume" = {
-        type = "internal/pulseaudio";
-        label-volume            = "VOL %percentage%%";
-        label-volume-foreground = "\${colors.fg-dim}";
-        label-muted             = "MUDO";
-        label-muted-foreground  = "\${colors.red}";
-        click-right             = "pavucontrol";
+        type        = "custom/script";
+        exec        = "${volStatus}";
+        interval    = 1;
+        click-left  = "${volMute}";
+        click-right = "pavucontrol";
+        scroll-up   = "${volUp}";
+        scroll-down = "${volDown}";
+      };
+
+      "module/nightlight" = {
+        type        = "custom/script";
+        exec        = "${nightIcon}";
+        interval    = 2;
+        click-left  = "${nightToggle}";
+        scroll-up   = "${nightUp}";
+        scroll-down = "${nightDown}";
       };
     };
   };

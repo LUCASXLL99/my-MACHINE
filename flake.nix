@@ -1,34 +1,40 @@
-# flake.nix — entrada única do sistema
-# Toda dependência externa está aqui, versionada no flake.lock
-# Para atualizar: nix flake update
-# Para rebuildar: sudo nixos-rebuild switch --flake .#nixos
-
 {
   description = "lucasxll nixos config";
 
-  # ============================================================
-  # ENTRADAS (dependências externas — todas versionadas)
-  # ============================================================
+  nixConfig = {
+    extra-substituters        = [ "https://noctalia.cachix.org" ];
+    extra-trusted-public-keys = [ "noctalia.cachix.org-1:pCOR47nnMEo5thcxNDtzWpOxNFQsBRglJzxWPp3dkU4=" ];
+  };
+
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11";
 
+    # unstable usado SOMENTE para noctalia/quickshell
+    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
+
     home-manager = {
       url    = "github:nix-community/home-manager/release-24.11";
-      inputs.nixpkgs.follows = "nixpkgs"; # usa o mesmo nixpkgs — sem duplicata
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    stylix = {
+      url    = "github:danth/stylix/release-24.11";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.home-manager.follows = "home-manager";
+    };
+
+    noctalia = {
+      url = "github:noctalia-dev/noctalia-shell";
+      inputs.nixpkgs.follows = "nixpkgs-unstable";
     };
   };
 
-  # ============================================================
-  # SAÍDAS
-  # ============================================================
-  outputs = { self, nixpkgs, home-manager, ... } @ inputs:
+  outputs = { self, nixpkgs, home-manager, stylix, noctalia, ... } @ inputs:
   let
     system = "x86_64-linux";
     pkgs   = nixpkgs.legacyPackages.${system};
   in
   {
-    # ── Sistema NixOS ──────────────────────────────────────────
-    # sudo nixos-rebuild switch --flake .#nixos
     nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
       inherit system;
       specialArgs = { inherit inputs; };
@@ -37,14 +43,8 @@
       ];
     };
 
-    # ── Home Manager standalone (opcional) ────────────────────
-    # home-manager switch --flake .#lucasxll
-    homeConfigurations.lucasxll = home-manager.lib.homeManagerConfiguration {
-      inherit pkgs;
-      extraSpecialArgs = { inherit inputs; };
-      modules = [
-        ./home/lucasxll/default.nix
-      ];
-    };
+    # homeConfigurations não é usado — HM está integrado via nixosModules em
+    # hosts/nixos/default.nix (home-manager.users.lucasxll).
+    # O módulo do noctalia é importado dentro de home/lucasxll/default.nix.
   };
 }

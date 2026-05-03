@@ -1,32 +1,53 @@
 # home/lucasxll/modules/terminals.nix
+#
+# WezTerm e Kitty.
+#
+# KITTY: cores gerenciadas pelo Stylix (stylix.targets.kitty.enable = true).
+#        Apenas layout, fonte e atalhos ficam aqui.
+#
+# WEZTERM: Stylix desativado (wezterm usa Lua, integração mais complexa).
+#          As cores Tokyo Night estão hardcoded no extraConfig Lua.
+#          Para migrar: ativar stylix.targets.wezterm em stylix.nix e remover
+#          `config.color_scheme = 'Tokyo Night'` do extraConfig.
 
-{ ... }:
+{ lib, ... }:
 
 {
   programs.wezterm = {
     enable = true;
     extraConfig = ''
-      local wezterm = require 'wezterm'
-      local config  = wezterm.config_builder()
-      local act     = wezterm.action
+      local config = wezterm.config_builder()
+      local act    = wezterm.action
 
-      config.font = wezterm.font('JetBrainsMono Nerd Font', { weight = 'Regular' })
-      config.font_size = 12.0
-      config.color_scheme = 'Github Dark'
+      -- ── Fonte ────────────────────────────────────────────────────
+      config.font      = wezterm.font('JetBrainsMono Nerd Font', { weight = 'Regular' })
+      config.font_size = 14.0
+      config.line_height = 1.2
 
-      config.tab_bar_at_bottom      = false
-      config.use_fancy_tab_bar      = false
-      config.enable_scroll_bar      = true
-      config.scrollback_lines       = 5000
-      config.window_padding         = { left = 4, right = 12, top = 4, bottom = 4 }
-      config.default_cursor_style   = 'BlinkingBar'
-      config.cursor_blink_rate      = 500
-      config.window_decorations     = "RESIZE"
-      config.window_background_opacity = 0.95
+      config.freetype_load_target   = 'Light'
+      config.freetype_render_target = 'HorizontalLcd'
 
-      -- Ctrl+C: copia se tiver seleção, senão manda SIGINT (comportamento inteligente)
-      -- Ctrl+V: cola sempre
-      -- Ctrl+A: seleciona tudo
+      -- ── Cores ────────────────────────────────────────────────────
+      -- NOTA: quando stylix.targets.wezterm = true, remover esta linha
+      -- e deixar Stylix injetar a paleta automaticamente
+      config.color_scheme = 'Tokyo Night'
+
+      -- ── Layout ───────────────────────────────────────────────────
+      config.tab_bar_at_bottom  = false
+      config.use_fancy_tab_bar  = false
+      config.enable_scroll_bar  = true
+      config.scrollback_lines   = 5000
+      config.window_padding     = { left = 8, right = 14, top = 6, bottom = 6 }
+
+      -- ── Cursor ───────────────────────────────────────────────────
+      config.default_cursor_style = 'BlinkingBlock'
+      config.cursor_blink_rate    = 500
+
+      -- ── Janela ───────────────────────────────────────────────────
+      config.window_decorations        = "RESIZE"
+      config.window_background_opacity = 0.82
+
+      -- ── Atalhos ──────────────────────────────────────────────────
       config.keys = {
         {
           key = 'c', mods = 'CTRL',
@@ -39,24 +60,27 @@
             end
           end),
         },
-        { key = 'v', mods = 'CTRL',      action = act.PasteFrom 'Clipboard' },
+        { key = 'v', mods = 'CTRL',       action = act.PasteFrom 'Clipboard' },
         { key = 'a', mods = 'CTRL|SHIFT', action = act.SelectTextAtMouseCursor 'SemanticZone' },
 
-        -- Atalhos de janela via RAlt
-        { key = 't', mods = 'RALT', action = act.SpawnTab 'CurrentPaneDomain' },
-        { key = 'w', mods = 'RALT', action = act.CloseCurrentTab { confirm = false } },
-        { key = 's', mods = 'RALT', action = act.SplitVertical   { domain = 'CurrentPaneDomain' } },
-        { key = 'd', mods = 'RALT', action = act.SplitHorizontal { domain = 'CurrentPaneDomain' } },
-        { key = 'h', mods = 'RALT', action = act.ActivatePaneDirection 'Left'  },
-        { key = 'l', mods = 'RALT', action = act.ActivatePaneDirection 'Right' },
-        { key = 'k', mods = 'RALT', action = act.ActivatePaneDirection 'Up'    },
-        { key = 'j', mods = 'RALT', action = act.ActivatePaneDirection 'Down'  },
-        { key = 'n', mods = 'RALT', action = act.ActivateTabRelative(1)  },
-        { key = 'p', mods = 'RALT', action = act.ActivateTabRelative(-1) },
-        { key = 'z', mods = 'RALT', action = act.TogglePaneZoomState     },
+        { key = 't', mods = 'ALT', action = act.SpawnTab 'CurrentPaneDomain' },
+        { key = 'w', mods = 'ALT', action = act.CloseCurrentTab { confirm = false } },
+        { key = 's', mods = 'ALT', action = act.SplitVertical   { domain = 'CurrentPaneDomain' } },
+        { key = 'd', mods = 'ALT', action = act.SplitHorizontal { domain = 'CurrentPaneDomain' } },
+        { key = 'h', mods = 'ALT', action = act.ActivatePaneDirection 'Left'  },
+        { key = 'l', mods = 'ALT', action = act.ActivatePaneDirection 'Right' },
+        { key = 'k', mods = 'ALT', action = act.ActivatePaneDirection 'Up'    },
+        { key = 'j', mods = 'ALT', action = act.ActivatePaneDirection 'Down'  },
+        { key = 'n', mods = 'ALT', action = act.ActivateTabRelative(1)  },
+        { key = 'p', mods = 'ALT', action = act.ActivateTabRelative(-1) },
+        { key = 'z', mods = 'ALT', action = act.TogglePaneZoomState     },
+
+        { key = '+', mods = 'CTRL', action = act.IncreaseFontSize },
+        { key = '-', mods = 'CTRL', action = act.DecreaseFontSize },
+        { key = '0', mods = 'CTRL', action = act.ResetFontSize    },
       }
 
-      -- Clique direito cola (igual ao terminal clássico do Linux)
+      -- ── Mouse ────────────────────────────────────────────────────
       config.mouse_bindings = {
         {
           event  = { Down = { streak = 1, button = 'Right' } },
@@ -69,50 +93,4 @@
     '';
   };
 
-  programs.kitty = {
-    enable = true;
-    font = {
-      name = "JetBrainsMono Nerd Font";
-      size = 12;
-    };
-    settings = {
-      tab_bar_edge             = "top";
-      tab_bar_align            = "right";
-      tab_bar_style            = "powerline";
-      scrollback_lines         = 5000;
-      background_opacity       = "0.95";
-      hide_window_decorations  = "yes";
-      cursor_blink_interval    = "0.5";
-      background               = "#0e1117";
-      foreground               = "#e6edf3";
-      selection_background     = "#58a6ff";
-      selection_foreground     = "#0e1117";
-      cursor                   = "#58a6ff";
-      active_tab_background    = "#58a6ff";
-      active_tab_foreground    = "#0e1117";
-      inactive_tab_background  = "#161b22";
-      inactive_tab_foreground  = "#8b949e";
-      # Ctrl+C/V igual ao sistema
-      copy_on_select           = "yes";
-    };
-    keybindings = {
-      # Ctrl+C copia se tiver seleção, senão SIGINT
-      "ctrl+c"  = "copy_or_interrupt";
-      "ctrl+v"  = "paste_from_clipboard";
-      # RAlt para janelas
-      "ralt+t"  = "new_tab_with_cwd";
-      "ralt+w"  = "close_tab";
-      "ralt+n"  = "next_tab";
-      "ralt+p"  = "previous_tab";
-      "ralt+s"  = "launch --location=hsplit";
-      "ralt+d"  = "launch --location=vsplit";
-      "ralt+h"  = "neighboring_window left";
-      "ralt+l"  = "neighboring_window right";
-      "ralt+k"  = "neighboring_window up";
-      "ralt+j"  = "neighboring_window down";
-      "ralt+z"  = "toggle_layout stack";
-      # Clique direito cola
-      "mouse_button_right" = "paste_from_selection";
-    };
-  };
 }

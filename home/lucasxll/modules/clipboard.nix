@@ -1,18 +1,21 @@
 # home/lucasxll/modules/clipboard.nix
-# Greenclip — histórico de clipboard via rofi (super + v)
+# CopyQ — histórico de clipboard com interface gráfica
+# super + v abre a janela do copyq diretamente
 
-{ config, pkgs, ... }:
+{ pkgs, ... }:
 
 {
-  home.packages = [ pkgs.haskellPackages.greenclip ];
+  home.packages = [ pkgs.copyq ];
 
-  xdg.configFile."greenclip.toml".text = ''
-    [greenclip]
-      max_history_length       = 50
-      enable_image_support     = false
-      image_cache_path         = ""
-      deduplicate_on_insert    = true
-      history_file             = "${config.home.homeDirectory}/.cache/greenclip.history"
-      blacklisted_applications = ["KeePassXC", "keepassxc", "pinentry"]
+  # Configuração do copyq: histórico de 100 itens, sem imagens
+  xdg.configFile."copyq/copyq.conf".text = ''
+    [General]
+    maxitems=100
+    saveImagesOnClose=false
+    viMode=false
+    closeOnUnfocus=true
+
+    [Shortcuts]
+    activate_closes=true
   '';
 }
