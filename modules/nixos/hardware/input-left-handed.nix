@@ -80,4 +80,109 @@
     # Reaplica após 5s para dispositivos que demoram para ser reconhecidos
     (sleep 5 && _apply_input) &
   '';
+
+  # ── Sistema: mouse-invert como serviço raiz (SDDM + niri) ──────────
+  #
+  # Roda antes do display-manager → dispositivos [inv] existem no SDDM
+  # Wayland. Fica ativo durante a sessão niri também (sem serviço de
+  # usuário conflitante). O modo (y/xy) é lido de /run/mouse-invert-mode;
+  # se o arquivo não existir, usa "y" (tela espelhada por padrão).
+
+  environment.systemPackages = let
+    mouseInvert = pkgs.writers.writePython3Bin "mouse-invert" {
+      libraries = [ pkgs.python3Packages.evdev ];
+    } ''
+      import sys
+      import threading
+      import time
+      import evdev
+      from evdev import ecodes, UInput
+
+      mode = sys.argv[1] if len(sys.argv) > 1 else "xy"
+      INV_X = "x" in mode
+      INV_Y = "y" in mode
+      print(f"[mouse-invert] modo={mode} inv_x={INV_X} inv_y={INV_Y}", flush=True)
+
+
+      def process(src):
+          try:
+              dst = UInput.from_device(src, name=src.name + " [inv]")
+              src.grab()
+              print(f"[mouse-invert] grabbing: {src.name} ({src.path})", flush=True)
+              for ev in src.read_loop():
+                  if ev.type == ecodes.EV_REL:
+                      if ev.code == ecodes.REL_X and INV_X:
+                          dst.write(ev.type, ev.code, -ev.value)
+                      elif ev.code == ecodes.REL_Y and INV_Y:
+                          dst.write(ev.type, ev.code, -ev.value)
+                      else:
+                          dst.write_event(ev)
+                  else:
+                      dst.write_event(ev)
+                  if ev.type == ecodes.EV_SYN:
+                      dst.syn()
+          except Exception as e:
+              print(f"[mouse-invert] erro: {e}", file=sys.stderr, flush=True)
+          finally:
+              try:
+                  src.ungrab()
+              except Exception:
+                  pass
+
+
+      def find_mice():
+          found = []
+          for path in evdev.list_devices():
+              try:
+                  d = evdev.InputDevice(path)
+                  caps = d.capabilities()
+                  rel = caps.get(ecodes.EV_REL, [])
+                  if ecodes.REL_X in rel and ecodes.REL_Y in rel:
+                      if "[inv]" not in d.name:
+                          found.append(d)
+              except Exception:
+                  pass
+          return found
+
+
+      mice = find_mice()
+      if not mice:
+          print("[mouse-invert] nenhum mouse encontrado", file=sys.stderr)
+          sys.exit(1)
+
+      for m in mice:
+          threading.Thread(target=process, args=(m,), daemon=True).start()
+
+      try:
+          while True:
+              time.sleep(60)
+      except KeyboardInterrupt:
+          pass
+    '';
+  in [ mouseInvert ];
+
+  systemd.services.mouse-invert = {
+    description = "Mouse axis inverter (SDDM + Niri)";
+    after    = [ "systemd-udev-settle.service" ];
+    before   = [ "display-manager.service" ];
+    wantedBy = [ "display-manager.service" ];
+    serviceConfig = {
+      Type       = "simple";
+      ExecStart  = "/bin/sh -c 'MODE=$(cat /run/mouse-invert-mode 2>/dev/null || echo y); exec mouse-invert $MODE'";
+      Restart    = "on-failure";
+      RestartSec = "3s";
+      # mouse-invert precisa do PATH do sistema para encontrar o binário
+      Environment = "PATH=/run/current-system/sw/bin";
+    };
+  };
+
+  # Permite que lucasxll controle mouse-invert sem senha (para niri-mirror/reset)
+  security.sudo.extraRules = [{
+    users    = [ "lucasxll" ];
+    commands = [
+      { command = "/run/current-system/sw/bin/systemctl restart mouse-invert"; options = [ "NOPASSWD" ]; }
+      { command = "/run/wrappers/bin/tee /run/mouse-invert-mode";              options = [ "NOPASSWD" ]; }
+    ];
+  }];
+
 }

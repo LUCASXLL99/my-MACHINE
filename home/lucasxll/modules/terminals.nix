@@ -81,11 +81,33 @@
       }
 
       -- ── Mouse ────────────────────────────────────────────────────
+      -- Botão direito:
+      --   • Pressionar + arrastar  → seleciona texto (com auto-scroll na borda)
+      --   • Soltar após arrastar   → copia para PrimarySelection
+      --   • Clique simples (sem arrastar) → copia célula sob cursor para Primary
+      --
+      -- O problema anterior: Down=Paste consumia o evento de pressionar,
+      -- impedindo que o drag iniciasse qualquer seleção. O WezTerm nunca
+      -- registrava o ponto inicial, então arrastar até a borda não fazia
+      -- nada — o texto ficava preso no limite visível da tela.
       config.mouse_bindings = {
+        -- Down: inicia a seleção na célula sob o cursor
         {
           event  = { Down = { streak = 1, button = 'Right' } },
           mods   = 'NONE',
-          action = act.PasteFrom 'PrimarySelection',
+          action = act.SelectTextAtMouseCursor 'Cell',
+        },
+        -- Drag: estende a seleção (auto-scroll ativa quando chega na borda)
+        {
+          event  = { Drag = { streak = 1, button = 'Right' } },
+          mods   = 'NONE',
+          action = act.ExtendSelectionToMouseCursor 'Cell',
+        },
+        -- Up: finaliza e copia para PrimarySelection
+        {
+          event  = { Up = { streak = 1, button = 'Right' } },
+          mods   = 'NONE',
+          action = act.CompleteSelectionOrOpenLinkAtMouseCursor 'PrimarySelection',
         },
       }
 

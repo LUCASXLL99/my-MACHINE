@@ -31,7 +31,6 @@ in
 {
   home.packages = with pkgs; [
     wlsunset  # Wayland
-    redshift  # X11
   ];
 
   # ══════════════════════════════════════════════════════════════
@@ -72,35 +71,11 @@ in
         echo "wlsunset: WAYLAND_DISPLAY nao disponivel em 10s" >&2
         exit 1
       '';
-      ExecStart = "${pkgs.wlsunset}/bin/wlsunset -l ${lat} -L ${lon} -t 1000 -T 6500 -g 0.8";
+      ExecStart = "${pkgs.wlsunset}/bin/wlsunset -l ${lat} -L ${lon} -t 2500 -T 6500 -g 0.8";
       Restart    = "on-failure";
       RestartSec = "5s";
     };
     Install.WantedBy = [ "niri.service" ];
   };
 
-  # ══════════════════════════════════════════════════════════════
-  # X11 — redshift (method=vidmode)
-  # vidmode é o método correto para X11 puro — nunca causa os
-  # erros de "randr não disponível em Wayland" do gammastep.
-  # ══════════════════════════════════════════════════════════════
-  systemd.user.services.redshift-x11 = {
-    Unit = {
-      Description = "Night light — X11 (redshift vidmode)";
-      # Só ativa em sessões X11 (quando WAYLAND_DISPLAY ausente)
-      ConditionEnvironment = "!WAYLAND_DISPLAY";
-      After = [ "graphical-session.target" ];
-      PartOf = [ "graphical-session.target" ];
-    };
-    Service = {
-      # -m vidmode : método X11 estável
-      # -l lat:lon : localização para calcular horários
-      # -t dia:noi : temperaturas
-      # -b dia:noi : brilho
-      ExecStart = "${pkgs.redshift}/bin/redshift -m vidmode -l ${lat}:${lon} -t 6500:1000 -b 1.0:0.8";
-      Restart = "on-failure";
-      RestartSec = "5s";
-    };
-    Install.WantedBy = [ "graphical-session.target" ];
-  };
 }

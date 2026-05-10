@@ -41,6 +41,50 @@
       # Tela espelhada
       flip-x     = ''xrandr --output "$(xrandr | awk '/ connected/{print $1; exit}')" --reflect x'';
       flip-reset = ''xrandr --output "$(xrandr | awk '/ connected/{print $1; exit}')" --reflect normal'';
+
+      # ── Git visual ────────────────────────────────────────────
+      lg = "lazygit";
+
+      # ── HTTP / API testing ────────────────────────────────────
+      http = "curlie";   # curlie GET https://api.exemplo.com
+      ws   = "websocat"; # websocat ws://localhost:8080
+
+      # ── JSON / dados ──────────────────────────────────────────
+      json = "fx";       # explorar JSON interativo: cat data.json | fx
+
+      # ── Rust/WASM dev loop ────────────────────────────────────
+      wbuild = "wasm-pack build --target web --out-dir pkg";
+      wserve = "python3 -m http.server 8080";
+      wwatch = ''cargo watch -s "wasm-pack build --target web"'';
+      wclean = "rm -rf pkg/ target/wasm32-unknown-unknown/";
+
+      # ARMADILHA 7 (CORRIGIDA): rustup target não persiste entre instalações.
+      # Rode uma vez por usuário/instalação nova: wasm-setup
+      # Também atualiza para o latest stable (atualmente 1.95.0).
+      wasm-setup = "rustup update stable && rustup default stable && rustup target add wasm32-unknown-unknown";
+
+      # ── Cargo extras ──────────────────────────────────────────
+      audit  = "cargo audit";
+      expand = "cargo expand";
+      ntest  = "cargo nextest run";
+      flame  = "cargo flamegraph";
+
+      # ── Deploy ────────────────────────────────────────────────
+      fly    = "flyctl";
+
+      # ── Terminal tools ────────────────────────────────────────
+      top    = "btop";
+      find   = "fd";
+      grep   = "rg";
+      du     = "dust";
+      bench  = "hyperfine";
+      lc     = "tokei";
+
+      # ── Docker ────────────────────────────────────────────────
+      lzd    = "lazydocker";
+
+      # ── npm/npx rápido ────────────────────────────────────────
+      serve = "npx serve .";
     };
   };
 
@@ -124,5 +168,18 @@
         format   = "[ $duration]($style) ";
       };
     };
+  };
+
+  # ── Zoxide — cd inteligente ─────────────────────────────────────
+  # `z foo`   → salta para o dir mais frequente que contém "foo"
+  # `zi`      → picker interativo com fzf
+  # `z -`     → volta para o diretório anterior
+  # O histórico fica em ~/.local/share/zoxide/db.zo
+  programs.zoxide = {
+    enable               = true;
+    enableZshIntegration = true;
+    # Mantém `cd` funcionando normalmente — zoxide fica em `z` e `zi`.
+    # Se quiser que `cd` também use zoxide, mude para: options = [ "--cmd cd" ];
+    options = [];
   };
 }

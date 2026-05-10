@@ -13,6 +13,7 @@
     ../../modules/nixos/software/no-keyring.nix
     ../../modules/nixos/software/yazi-deps.nix
     ../../modules/nixos/software/niri.nix
+    ../../modules/nixos/software/rust-dev.nix
     inputs.home-manager.nixosModules.home-manager
     inputs.stylix.nixosModules.stylix               # ← STYLIX
   ];
@@ -55,7 +56,7 @@
 
   stylix.fonts = {
     monospace = {
-      package = pkgs.nerdfonts.override { fonts = [ "JetBrainsMono" ]; };
+      package = pkgs.nerd-fonts.jetbrains-mono;
       name    = "JetBrainsMono Nerd Font";
     };
     sansSerif = {
@@ -78,7 +79,11 @@
     useUserPackages  = true;
     extraSpecialArgs = { inherit inputs; };
     backupFileExtension = "backup";
-    users.lucasxll   = import ../../home/lucasxll/default.nix;
+    # O stylix release-25.05 novo não injeta mais o módulo HM automaticamente
+    # via nixosModules — é preciso declarar explicitamente aqui para que as
+    # opções `stylix.*` existam dentro de home-manager.users.lucasxll.
+    sharedModules = [ inputs.stylix.homeModules.stylix ];
+    users.lucasxll = import ../../home/lucasxll/default.nix;
   };
 
   # ── BOOT ─────────────────────────────────────────────────────
@@ -113,7 +118,7 @@
   # ── HARDWARE ─────────────────────────────────────────────────
   hardware.bluetooth.enable    = true;
   hardware.keyboard.qmk.enable = true;
-  hardware.pulseaudio.enable = false;
+  services.pulseaudio.enable = false;
 
   # ── DISPLAY ──────────────────────────────────────────────────
   services.xserver = {
@@ -177,7 +182,7 @@
     domain = "*";
     type   = "hard";
     item   = "maxlogins";
-    value  = "2";
+    value  = "4";
   }];
   services.pipewire = {
     enable = true; alsa.enable = true;
@@ -186,6 +191,26 @@
 
   # ── IMPRESSÃO ────────────────────────────────────────────────
   services.printing.enable = true;
+
+  # ── DISPOSITIVOS REMOVÍVEIS ───────────────────────────────────
+  # udisks2: daemon que detecta e monta pen drives, HDs externos,
+  # teclados e qualquer dispositivo USB removível automaticamente.
+  # Sem ele, o Dolphin não consegue ver nem montar nada que plugar.
+  services.udisks2.enable = true;
+
+  # gvfs: camada de abstração de arquivos para apps GTK/KDE.
+  # Necessário para o Dolphin mostrar o dispositivo na barra lateral
+  # e para operações de copiar/mover funcionar com o file picker.
+  services.gvfs.enable = true;
+
+  # ── MOUSE HOTPLUG ─────────────────────────────────────────────
+  # Reinicia o serviço mouse-invert-y quando qualquer mouse novo é
+  # plugado. Sem isso, mouses plugados após o login não são capturados
+  # porque o script Python faz find_mice() apenas na inicialização.
+  services.udev.extraRules = ''
+    SUBSYSTEM=="input", ACTION=="add", ENV{ID_INPUT_MOUSE}=="1", \
+      TAG+="systemd", ENV{SYSTEMD_USER_WANTS}="mouse-invert-y.service"
+  '';
 
   # ── ENERGIA ──────────────────────────────────────────────────
   services.power-profiles-daemon.enable = false;
@@ -219,6 +244,35 @@
 
     # ── Android Studio / AWT ─────────────────────────────────────────
     _JAVA_AWT_WM_NONREPARENTING = "1";
+
+    # ── Rust / Cargo ─────────────────────────────────────────────────
+    # ── Rust / Cargo ─────────────────────────────────────────────────
+    OPENSSL_DIR = "${pkgs.openssl.dev}";
+    OPENSSL_LIB_DIR = "${pkgs.openssl.out}/lib";
+    PATH = "$HOME/.cargo/bin:$PATH";
+
+    # ── WebAssembly / WASM ────────────────────────────────────────────
+    # Diz ao Cargo para usar lld como linker ao compilar para wasm32.
+    # O GNU ld padrão do nixpkgs não suporta o target wasm32 — sem isso
+    # o `cargo build --target wasm32-unknown-unknown` falha com linker error.
+    CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_LINKER = "${pkgs.llvmPackages.lld}/bin/lld";
+
+    # ARMADILHA 1 (CORRIGIDA): mold não aceita -m64 que build scripts
+    # (proc-macros, build.rs) passam ao compilar targets nativos durante
+    # wasm-pack. lld é compatível tanto com wasm-pack quanto com compilação
+    # nativa x86_64 — sem regressão de velocidade relevante.
+    CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER = "${pkgs.llvmPackages.lld}/bin/lld";
+
+    # wasm-opt é chamado pelo wasm-pack após compilar para otimizar o .wasm.
+    # Sem este PATH explícito, wasm-pack pode não encontrar o binário do
+    # binaryen quando chamado fora de um shell com PATH completo (ex: pelo niri).
+    WASM_OPT = "${pkgs.binaryen}/bin/wasm-opt";
+
+    # ARMADILHA 5 (CORRIGIDA): sessionVariables só carregam em sessões NOVAS
+    # após rebuild. Se a variável não aparecer no terminal: abra um novo
+    # terminal ou rode: source /etc/set-environment
+    RUST_LOG       = "debug";
+    RUST_BACKTRACE = "1";
   };
 
   # ── SERVIÇOS ─────────────────────────────────────────────────
@@ -273,6 +327,13 @@
         libxkbcommon
         xorg.libX11 xorg.libXext xorg.libXrender
         xorg.libXtst xorg.libXi xorg.libXfixes
+        # ── Rust: libs nativas para crates C-heavy ───────────────────
+        # Necessárias para ferramentas externas (binários ELF não-nix)
+        # que linkam dinamicamente contra essas libs em runtime.
+        openssl          # ring, rustls, reqwest com TLS nativo
+        postgresql.lib   # sqlx/diesel com feature postgres
+        sqlite           # rusqlite, sqlx com feature sqlite
+        libclang.lib     # bindgen em ferramentas externas
       ];
     };
     # NOTA: programas.zsh.enable = true é necessário para que zsh apareça em
@@ -284,7 +345,7 @@
 
   # ── FONTES ───────────────────────────────────────────────────
   fonts.packages = with pkgs; [
-    (nerdfonts.override { fonts = [ "JetBrainsMono" ]; })
+    nerd-fonts.jetbrains-mono
     noto-fonts
     inter
   ];
@@ -353,7 +414,7 @@
 
     vivaldi obsidian onlyoffice-bin_latest gnome-disk-utility
     rofi
-    dolphin ark
+    kdePackages.dolphin kdePackages.ark
     # ── Android Studio via XWayland-Satellite ────────────────────────
     # O Android Studio usa Java AWT — uma tecnologia X11 pura que não
     # fala Wayland. No Niri (compositor Wayland), ele precisa do
@@ -372,7 +433,7 @@
       buildInputs = [ pkgs.makeWrapper ];
       postBuild = ''
         wrapProgram $out/bin/android-studio \
-          --set DISPLAY ":0" \
+          --set DISPLAY ":1" \
           --set _JAVA_AWT_WM_NONREPARENTING "1"
 
         # O .desktop gerado pelo nixpkgs contém o caminho absoluto do store
@@ -399,6 +460,97 @@
     })
 
     python3 python312Packages.pip
+
+    # ── Rust core ────────────────────────────────────────────────────
+    # rustup gerencia toolchains (stable, nightly) e targets.
+    # Após o rebuild, rode:
+    #   rustup default stable
+    #   rustup target add wasm32-unknown-unknown
+    rustup
+
+    # ── WebAssembly — toolchain completo ─────────────────────────────
+    #
+    # wasm-pack  → compila o crate Rust para .wasm + gera bindings JS
+    #              uso: wasm-pack build --target web --out-dir pkg
+    # trunk      → dev-server com HMR para projetos Rust/WASM (alt. ao wasm-pack)
+    #              uso: trunk serve  (lê index.html com <link data-trunk ...>)
+    wasm-pack
+    trunk
+
+    # wasm-bindgen-cli — CLI autônoma do wasm-bindgen.
+    # Necessária quando se usa wasm-bindgen diretamente (sem wasm-pack)
+    # ou para inspecionar/re-gerar bindings manualmente.
+    # IMPORTANTE: a versão aqui deve coincidir com a do Cargo.toml.
+    wasm-bindgen-cli
+
+    # binaryen — fornece o `wasm-opt`, usado pelo wasm-pack na fase de
+    # otimização do binário .wasm (-O3, --strip-debug, etc.).
+    # Sem ele, wasm-pack emite aviso e pula a otimização.
+    binaryen
+
+    # wabt (WebAssembly Binary Toolkit) — ferramentas de inspeção/debug:
+    #   wasm2wat       → converte .wasm binário em WAT (texto legível)
+    #   wat2wasm       → compila WAT de volta para .wasm
+    #   wasm-validate  → valida um .wasm sem executar
+    #   wasm-objdump   → inspeciona seções, imports, exports do .wasm
+    wabt
+
+    # ── Node.js — ecosistema JS auxiliar ─────────────────────────────
+    # Necessário para:
+    #   npx serve .          → servidor estático local para testar o .wasm
+    #   npx http-server .    → alternativa ao python3 -m http.server
+    #   npm install          → projetos que misturam WASM + bundler (Vite, Webpack)
+    nodejs_22
+
+    # ── Cargo utilitários de desenvolvimento ─────────────────────────
+    # cargo-watch  → monitora arquivos e recompila automaticamente.
+    #                uso: cargo watch -s "wasm-pack build --target web"
+    cargo-watch
+
+    # cargo-generate → cria projetos a partir de templates Git.
+    #                  uso: cargo generate rustwasm/wasm-pack-template
+    cargo-generate
+
+    # cargo-edit → manipula dependências via CLI (sem editar Cargo.toml manualmente).
+    #              uso: cargo add wasm-bindgen
+    #                   cargo upgrade
+    cargo-edit
+
+    # cargo-nextest → substituto do `cargo test`: mais rápido, output legível,
+    #                 suporte a filtros e retries.
+    #                 uso: cargo nextest run
+    cargo-nextest
+
+    # cargo-audit → verifica vulnerabilidades conhecidas (CVEs) nas dependências.
+    #               uso: cargo audit
+    #               Rode antes de publicar qualquer serviço.
+    cargo-audit
+
+    # cargo-expand → expande macros proc-macro para inspecionar o código gerado.
+    #                Indispensável para debugar derive macros e wasm-bindgen.
+    #                uso: cargo expand
+    cargo-expand
+
+    # cargo-flamegraph → profiling visual: gera flamegraph.svg do binário.
+    #                    uso: cargo flamegraph --bin meu-binario
+    cargo-flamegraph
+
+    # ── Linker / compilação nativa ────────────────────────────────────
+    # lld (LLVM linker) — linker padrão para targets WASM no Rust.
+    # Muito mais rápido que o GNU ld para wasm32-unknown-unknown.
+    # O Cargo o detecta automaticamente quando está no PATH.
+    llvmPackages.lld
+
+    # mold — linker ultrarrápido para binários nativos Linux.
+    # Não substitui o lld para WASM, mas acelera muito a compilação
+    # de crates nativos (proc-macros, build-scripts) que rodam no host.
+    mold
+
+    pkg-config
+    openssl
+    openssl.dev
+
+
     gcc stdenv.cc.cc
     zulu8 openjdk11 jdk17 jdk21
 
@@ -428,6 +580,87 @@
     kdePackages.plasma-integration
 
     xdg-desktop-portal-gtk
+
+    # ── Debugger ────────────────────────────────────────────────────
+    lldb              # debugger LLVM — base para codelldb / testes nativos
+
+    # ── LSP servers web ─────────────────────────────────────────────
+    nodePackages.typescript-language-server   # JS + TS
+    nodePackages.vscode-langservers-extracted # HTML + CSS + JSON + ESLint LSP
+    nodePackages."@tailwindcss/language-server"  # Tailwind CSS
+    emmet-language-server                     # emmet para HTML/CSS
+    nodePackages.prettier                     # formatador web
+    nodePackages.eslint                       # linter JS/TS
+
+    # ── Rust LSP ────────────────────────────────────────────────────
+    rust-analyzer   # LSP Rust declarativo (não depende do rustup ativo)
+    rustfmt         # formatador Rust
+
+    # ── Terminal utilities para web dev ─────────────────────────────
+    lazygit   # TUI git — muito mais ergonômico que git CLI direto
+    httpie    # cliente HTTP legível
+    websocat  # testa WebSockets via terminal
+    jq        # processa JSON no terminal
+    yq-go     # processa YAML/TOML no terminal (yq-go é o pacote nixpkgs)
+    curlie    # curl com interface do httpie
+    # ── Deploy / backend ─────────────────────────────────────────────
+    # flyctl → CLI do Fly.io: deploy de serviços Rust com um comando.
+    #          uso: fly deploy  /  fly logs  /  fly ssh console
+    flyctl
+
+    # caddy → servidor HTTP/HTTPS com TLS automático (Let's Encrypt).
+    #         Melhor que nginx para dev local pois gera cert autoassinado
+    #         sem configuração. Útil para testar CSP real via HTTPS.
+    #         uso: caddy file-server --listen :8443
+    caddy
+
+    # sqlx-cli → migrações de banco de dados para projetos Rust com sqlx.
+    #            uso: sqlx migrate run  /  sqlx migrate add nome
+    sqlx-cli
+
+    # mkcert → gera certificados HTTPS locais confiáveis pelo browser.
+    #          Par perfeito com caddy para testar HTTPS sem aviso de cert.
+    #          uso: mkcert -install && mkcert localhost 127.0.0.1
+    mkcert
+
+    # ── Ferramentas de terminal ───────────────────────────────────────
+    # btop → monitor de sistema visual (substitui htop).
+    btop
+
+    # dust → visualização de uso de disco por diretório (substitui du).
+    #        uso: dust  /  dust ~/rustteste
+    dust
+
+    # ripgrep → busca ultrarrápida em arquivos (respeita .gitignore).
+    #           uso: rg "pattern"
+    ripgrep
+
+    # fd → substituto ergonômico do `find`.
+    #      uso: fd nome  /  fd -e rs (arquivos .rs)
+    fd
+
+    # tokei → conta linhas de código por linguagem no projeto.
+    #         uso: tokei
+    tokei
+
+    # hyperfine → benchmarking de comandos shell com estatísticas.
+    #             uso: hyperfine "wasm-pack build --target web"
+    hyperfine
+
+    # ── Docker / virtualização ────────────────────────────────────────
+    # lazydocker → TUI para gerenciar containers, imagens e volumes Docker.
+    #              uso: lazydocker
+    lazydocker
+
+    # dive → inspeciona camadas de imagens Docker para otimizar tamanho.
+    #        uso: dive nome-da-imagem
+    dive
+
+    # ── Segurança / rede ─────────────────────────────────────────────
+    # wireshark → análise de pacotes de rede. Essencial ao expor serviços.
+    wireshark
+
+    fx        # explorador de JSON interativo no terminal
   ];
 
   # ── KDE SERVICE MENUS ───────────────────────────────────────────

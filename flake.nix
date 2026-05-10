@@ -7,20 +7,22 @@
   };
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
 
     # unstable usado SOMENTE para noctalia/quickshell
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     home-manager = {
-      url    = "github:nix-community/home-manager/release-24.11";
+      url    = "github:nix-community/home-manager/release-25.05";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     stylix = {
-      url    = "github:danth/stylix/release-24.11";
+      url    = "github:danth/stylix/release-25.05";
       inputs.nixpkgs.follows = "nixpkgs";
-      inputs.home-manager.follows = "home-manager";
+      # inputs.home-manager.follows removido: stylix release-25.05 novo não
+      # tem mais home-manager como input próprio — o módulo HM é importado
+      # explicitamente via sharedModules em hosts/nixos/default.nix.
     };
 
     noctalia = {
@@ -31,8 +33,9 @@
 
   outputs = { self, nixpkgs, home-manager, stylix, noctalia, ... } @ inputs:
   let
-    system = "x86_64-linux";
-    pkgs   = nixpkgs.legacyPackages.${system};
+    system      = "x86_64-linux";
+    pkgs        = nixpkgs.legacyPackages.${system};
+    pkgs-unstable = inputs.nixpkgs-unstable.legacyPackages.${system};
   in
   {
     nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {

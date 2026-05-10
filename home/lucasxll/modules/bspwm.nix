@@ -3,13 +3,30 @@
 { config, pkgs, ... }:
 
 {
+  # ── Pacotes exclusivos da sessão X11 ────────────────────────────
+  # Nada aqui é importado ou instalado quando a sessão ativa é o niri.
+  # (O bspwm.nix só é *declarado* — o NixOS não sobe esses processos
+  #  a menos que você faça login na sessão bspwm no SDDM.)
   home.packages = with pkgs; [
-    networkmanagerapplet
-    blueman
+    # Tray X11
+    networkmanagerapplet    # nm-applet --indicator
+    blueman                 # blueman-applet
+
+    # Clipboard X11 (no Wayland o noctalia gerencia; copyq fica em clipboard.nix)
     copyq
-    feh
-    mpvpaper
-    playerctl          # botões do fone bluetooth
+
+    # Imagens X11
+    feh                     # viewer e wallpaper setter
+    mpvpaper                # live wallpaper via mpv
+
+    # Screenshot X11 (no Wayland: grim+slurp via niri.nix)
+    flameshot
+
+    # Live wallpaper X11
+    xwinwrap
+
+    # Controle de mídia via Bluetooth
+    playerctl
   ];
 
   xsession.windowManager.bspwm = {
