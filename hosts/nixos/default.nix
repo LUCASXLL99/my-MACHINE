@@ -13,7 +13,8 @@
     ../../modules/nixos/software/no-keyring.nix
     ../../modules/nixos/software/yazi-deps.nix
     ../../modules/nixos/software/niri.nix
-    ../../modules/nixos/software/rust-dev.nix
+    ../../modules/nixos/software/rust-dev.nix   # ← ferramentas Rust completas
+    ../../modules/nixos/software/wallcards.nix  # ← plugin wallpaper vídeo (Wallcards)
     inputs.home-manager.nixosModules.home-manager
     inputs.stylix.nixosModules.stylix               # ← STYLIX
   ];

@@ -184,6 +184,7 @@
 
         // Fechar
         Mod+W       { close-window; }
+        Mod+Shift+W { spawn "qs" "-c" "noctalia-shell" "ipc" "call" "plugin:wallcards" "toggle"; }
         Mod+Shift+Q { close-window; }
 
         // Foco (hjkl)
