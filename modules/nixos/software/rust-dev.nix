@@ -11,7 +11,7 @@
     postgresql redis sqlite
     (diesel-cli.override {
       sqliteSupport   = true;
-      postgresSupport = true;
+      postgresqlSupport = true;
       mysqlSupport    = false;
     })
     sccache bacon protobuf grpcurl
