@@ -79,7 +79,7 @@
     # Compilar com features específicas evita dependências desnecessárias.
     (diesel-cli.override {
       sqliteSupport   = true;
-      postgresSupport = true;
+      postgresqlSupport = true;
       mysqlSupport    = false;
     })
 
