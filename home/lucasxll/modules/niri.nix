@@ -18,6 +18,7 @@
     wl-clipboard  # wl-copy / wl-paste
     wlr-randr     # controle de output (niri-mirror / niri-reset)
     xorg.xauth    # geração de cookie MIT-MAGIC-COOKIE para xwayland-satellite
+    xdotool       # leitura de posição do cursor via X11 (hot-corner.nix)
     # Fallbacks — descomentar SOMENTE se noctalia não subir:
     # waybar mako fuzzel swww hyprlock swayidle
   ];
@@ -47,7 +48,8 @@
     // ── OUTPUT ─────────────────────────────────────────────────────
     output "eDP-1" {
         scale 1.0
-        transform "flipped"
+        // transform "normal"  // padrão — sem espelho no boot
+        // use niri-mirror (Mod+F5) para ativar o espelho quando quiser
     }
 
     // ── LAYOUT ─────────────────────────────────────────────────────
@@ -85,7 +87,19 @@
     }
 
     prefer-no-csd
-    animations { slowdown 0.8; }
+    animations {
+      slowdown 0.8;
+      // Desativa animação de abertura: janela não aparece na direita
+      // antes do niri-autoplace movê-la para a esquerda.
+      window-open { off; }
+      // Desativa animação de movimento horizontal de colunas/viewport.
+      // Sem isso, o move-column-to-first do niri-autoplace causa um
+      // deslize visível da direita para a esquerda após a abertura.
+      // Com off, o movimento é instantâneo — janela teleporta para
+      // a primeira posição sem nenhum flash ou slide perceptível.
+      // Navegação normal (Mod+H/S) também fica instantânea.
+      horizontal-view-movement { off; }
+    }
 
     hotkey-overlay {
         skip-at-startup
@@ -126,11 +140,15 @@
     spawn-at-startup "sh" "-c" "pkill mpris-proxy; mpris-proxy"
     spawn-at-startup "sh" "-c" "sleep 2 && systemctl --user restart mouse-invert-y"
     spawn-at-startup "sh" "-c" "sleep 2 && noctalia-shell"
+    spawn-at-startup "sh" "-c" "sleep 3 && DISPLAY=:0 copyq --start-server"
     spawn-at-startup "sh" "-c" "sleep 5 && nm-applet --indicator"
+    // wallpaper → gerenciado por systemd (home/lucasxll/modules/wallpaper.nix)
+    //             systemctl --user status mpvpaper
 
     // ── ATALHOS ────────────────────────────────────────────────────
     binds {
         // Terminais
+        // niri-autoplace cuida de mover para a esquerda — keybinds simples
         Mod+Return       { spawn "wezterm"; }
         Mod+T            { spawn "wezterm"; }
         Mod+Shift+Return { spawn "kitty"; }
@@ -140,15 +158,14 @@
         Mod+R { spawn "sh" "-c" "DISPLAY=:1 rofi -show drun"; }
 
         // Apps
+        // niri-autoplace move automaticamente qualquer janela nova para a esquerda.
+        // Mod+A aguarda o socket X1 estar disponível antes de lançar o Studio
+        // (evita race condition se xwayland-satellite ainda estiver subindo).
         Mod+E { spawn "dolphin"; }
-        // Android Studio — roda via XWayland (DISPLAY e XAUTHORITY exportados
-        // pelo xwayland-satellite ao subir). Não setar DISPLAY manualmente aqui:
-        // o niri já tem DISPLAY=:1 no environment block acima, e XAUTHORITY
-        // chega via dbus-update-activation-environment do ExecStartPost.
-        Mod+A { spawn "android-studio"; }
+        Mod+A { spawn "sh" "-c" "for i in $(seq 1 20); do [ -S /tmp/.X11-unix/X1 ] && break; sleep 0.5; done; android-studio"; }
 
         // Clipboard
-        Mod+V { spawn "noctalia-shell" "ipc" "call" "launcher" "toggleClipboard"; }
+        Mod+V { spawn "sh" "-c" "DISPLAY=:0 copyq toggle"; }
 
         // Screenshot
         // Print/Shift+Print → nativo do niri (sem slurp, sem overlay, sem trava)
@@ -183,13 +200,13 @@
         Mod+F6 { spawn "niri-reset"; }
 
         // Fechar
-        Mod+W       { close-window; }
-        Mod+Shift+W { spawn "qs" "-c" "noctalia-shell" "ipc" "call" "plugin:wallcards" "toggle"; }
+        Mod+W         { close-window; }
+        Mod+Semicolon { spawn "sh" "-c" "pkill mpvpaper || mpvpaper -o 'no-audio loop' '*' ~/Pictures/wallpapers/wallpaper.mp4"; }
         Mod+Shift+Q { close-window; }
 
         // Foco (hjkl)
-        Mod+H { focus-column-left; }
-        Mod+S { focus-column-right; }
+        Mod+H { focus-column-right; }
+        Mod+S { focus-column-left; }
         Mod+J { focus-window-down; }
         Mod+K { focus-window-up; }
         Mod+Home { focus-column-first; }
@@ -308,6 +325,79 @@
         open-floating true
     }
   '';
+
+  # ════════════════════════════════════════════════════════════════
+  # NIRI-AUTOPLACE — move QUALQUER janela nova para a esquerda
+  # ════════════════════════════════════════════════════════════════
+  #
+  # Serviço universal: qualquer janela tiling nova que abrir focada é
+  # movida para a esquerda automaticamente — sem lista de apps.
+  #
+  # Janelas floating (pavucontrol, copyq, diálogos, etc.) são ignoradas
+  # via filtro is_floating no jq.
+  #
+  # Cada janela é rastreada pelo ID numérico em $SEEN (tmpdir).
+  # Isso garante que a janela seja movida só uma vez — re-focar a mesma
+  # janela não dispara um segundo move-column-to-first.
+  #
+  # Para descobrir o app_id de qualquer janela:
+  #   niri msg --json windows | jq '.[].app_id'
+  systemd.user.services.niri-autoplace = {
+    Unit = {
+      Description = "Niri auto-place — move qualquer janela nova para a primeira posição";
+      After       = [ "niri.service" ];
+      BindsTo     = [ "niri.service" ];
+    };
+    Service = {
+      Type    = "simple";
+      Restart = "on-failure";
+      RestartSec = "2s";
+      ExecStart = pkgs.writeShellScript "niri-autoplace" ''
+        # Aguarda o socket do niri estar disponível
+        for i in $(seq 1 20); do
+          [ -n "$NIRI_SOCKET" ] && break
+          NIRI_SOCKET=$(${pkgs.systemd}/bin/systemctl --user show-environment 2>/dev/null \
+            | grep '^NIRI_SOCKET=' | cut -d= -f2)
+          sleep 0.5
+        done
+        [ -z "$NIRI_SOCKET" ] && { echo "niri-autoplace: NIRI_SOCKET não encontrado" >&2; exit 1; }
+        export NIRI_SOCKET
+
+        echo "niri-autoplace: monitorando TODAS as janelas em $NIRI_SOCKET"
+
+        # Diretório temporário para rastrear IDs já processados.
+        # Cada janela nova ganha um arquivo vazio com seu ID como nome.
+        # Re-focar a mesma janela não dispara move-column-left novamente.
+        SEEN=$(mktemp -d /tmp/niri-autoplace-XXXXXX)
+        trap 'rm -rf "$SEEN"' EXIT INT TERM
+
+        # Escuta eventos e age sobre WindowOpenedOrChanged não-floating.
+        # NÃO filtra is_focused: apps X11/XWayland (Android Studio, etc.)
+        # recebem foco num evento separado e nunca passariam por esse filtro.
+        # O ID tracking abaixo garante que cada janela é movida só uma vez.
+        ${pkgs.niri}/bin/niri msg --json event-stream \
+          | ${pkgs.jq}/bin/jq -c --unbuffered '
+              select(.WindowOpenedOrChanged != null)
+              | .WindowOpenedOrChanged.window
+              | select(.is_floating == false or .is_floating == null)
+              | {id, app_id}
+            ' \
+          | while IFS= read -r ev; do
+              wid=$(printf '%s' "$ev" | ${pkgs.jq}/bin/jq -r '.id // ""')
+              app_id=$(printf '%s' "$ev" | ${pkgs.jq}/bin/jq -r '.app_id // ""')
+              [ -z "$wid" ] && continue
+
+              # Processa cada janela apenas uma vez (na abertura)
+              if [ ! -f "$SEEN/$wid" ]; then
+                touch "$SEEN/$wid"
+                ${pkgs.niri}/bin/niri msg action move-column-to-first
+                echo "niri-autoplace: moveu '$app_id' (id=$wid) para a primeira posição"
+              fi
+            done
+      '';
+    };
+    Install.WantedBy = [ "niri.service" ];
+  };
 
   # ════════════════════════════════════════════════════════════════
   # XWAYLAND-SATELLITE — X11 no Niri

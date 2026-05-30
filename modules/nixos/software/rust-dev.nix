@@ -6,7 +6,7 @@
 # Importar em hosts/nixos/default.nix:
 #   ../../modules/nixos/software/rust-dev.nix
 
-{ pkgs, ... }:
+{ pkgs, pkgs-unstable, ... }:
 
 {
   # ── VARIÁVEIS DE AMBIENTE ────────────────────────────────────────
@@ -25,15 +25,10 @@
     # Sem isso: "could not find native static library `pq`"
     PQ_LIB_DIR = "${pkgs.postgresql.lib}/lib";
 
-    # ── sccache — cache de compilação ───────────────────────────────
-    # Com sccache, o Cargo reutiliza objetos compilados entre projetos.
-    # Em projetos grandes (axum + tokio + sqlx + serde) o cold build
-    # cai de ~8min para ~1min nos subsequentes.
-    # RUSTC_WRAPPER instrui o Cargo a passar cada invocação pelo sccache.
-    RUSTC_WRAPPER = "${pkgs.sccache}/bin/sccache";
-
     # Cache local do sccache (padrão: ~/.cache/sccache, ~10GB máximo)
     # Para usar cache remota (S3, GCS): configure SCCACHE_BUCKET aqui.
+    # RUSTC_WRAPPER movido para home/lucasxll/modules/cargo-config.nix
+    # ([build] rustc-wrapper no config.toml gerado pelo home-manager).
     SCCACHE_CACHE_SIZE = "10G";
   };
 
@@ -52,9 +47,8 @@
     # clang       → compilador (para crates que compilam código C no build.rs)
     # libclang    → biblioteca que o bindgen usa para parsear headers C
     # clang-tools → clangd LSP, clang-format, clang-tidy (opcional mas útil)
-    clang
-    libclang
-    llvmPackages.clang-unwrapped
+    clang      # wrapper nixpkgs — injeta paths corretos do NixOS
+    libclang   # biblioteca para bindgen
 
     # perl: o crate openssl-sys usa perl no build.rs para configurar o build.
     # Sem perl: "Can't locate FindBin.pm" durante `cargo build`.
@@ -85,7 +79,7 @@
 
     # ── Cache de compilação ──────────────────────────────────────────
     # sccache (Mozilla) — o mais compatível com Rust no NixOS.
-    # Configurado via RUSTC_WRAPPER acima.
+    # Configurado via [build] rustc-wrapper em home/lucasxll/modules/cargo-config.nix.
     # Limpar o cache: sccache --stop-server && rm -rf ~/.cache/sccache
     # Estatísticas: sccache --show-stats
     sccache
@@ -116,7 +110,7 @@
     # Bloqueia dependências banidas antes do deploy.
     # uso: cargo deny check
     # Configurado em deny.toml na raiz do projeto.
-    cargo-deny
+    pkgs-unstable.cargo-deny
 
     # cargo-udeps — detecta dependências declaradas mas não usadas.
     # Requer nightly: cargo +nightly udeps

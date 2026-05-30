@@ -6,7 +6,7 @@
 #   normal — tela padrão    + layout LTR + botões de janela à direita
 #
 # Estado persistido em: ~/.config/lucasxll/display-mode
-# Padrão ao primeiro boot (arquivo ausente): mirror
+# Padrão ao primeiro boot (arquivo ausente): normal
 #
 # Comandos:
 #   f-mirror   ativa modo espelho ao vivo
@@ -63,14 +63,14 @@ let
   startupScript = pkgs.writeShellScript "display-mode-startup" ''
     sleep 2
 
-    _MODE=$(cat "${stateFile}" 2>/dev/null || echo "mirror")
+    _MODE=$(cat "${stateFile}" 2>/dev/null || echo "normal")
 
     case "$_MODE" in
       mirror) ${applyMirror} ;;
       normal) ${applyNormal} ;;
       *)
-        echo "display-mode: valor inválido '$_MODE', usando mirror" >&2
-        ${applyMirror}
+        echo "display-mode: valor inválido '$_MODE', usando normal" >&2
+        ${applyNormal}
         ;;
     esac
 
@@ -124,7 +124,7 @@ in
     # NÃO edite este arquivo manualmente; edite display-mode.nix
 
     _DM_STATE_FILE="${stateFile}"
-    _DM_MODE=$(cat "$_DM_STATE_FILE" 2>/dev/null || echo "mirror")
+    _DM_MODE=$(cat "$_DM_STATE_FILE" 2>/dev/null || echo "normal")
 
     case "$_DM_MODE" in
 
@@ -171,9 +171,9 @@ in
       esac
       unset _DM_MODE
     else
-      # Arquivo ausente → padrão mirror
-      export GTK_TEXT_DIR=rtl
-      export QT_LAYOUT_DIRECTION=RTL
+      # Arquivo ausente → padrão normal
+      export GTK_TEXT_DIR=ltr
+      export QT_LAYOUT_DIRECTION=LTR
     fi
   '';
 

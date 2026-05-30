@@ -168,7 +168,7 @@
     wantedBy = [ "display-manager.service" ];
     serviceConfig = {
       Type       = "simple";
-      ExecStart  = "/bin/sh -c 'MODE=$(cat /run/mouse-invert-mode 2>/dev/null || echo y); exec mouse-invert $MODE'";
+      ExecStart  = "/bin/sh -c 'MODE=$(cat /run/mouse-invert-mode 2>/dev/null || echo xy); exec mouse-invert $MODE'";
       Restart    = "on-failure";
       RestartSec = "3s";
       # mouse-invert precisa do PATH do sistema para encontrar o binário

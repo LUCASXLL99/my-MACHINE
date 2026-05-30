@@ -69,6 +69,16 @@
       ntest  = "cargo nextest run";
       flame  = "cargo flamegraph";
 
+      # ── Erros compactos para análise por IA ──────────────────
+      # cb    → build com mensagens curtas (sem unicode boxes, sem hints)
+      # cbr   → igual + RUST_BACKTRACE para runtime debug
+      # cerr  → filtra só linhas de erro do cargo (ideal para colar no Claude)
+      # cw    → clippy compacto
+      cb   = "cargo build --message-format=short 2>&1";
+      cbr  = "RUST_LOG=debug RUST_BACKTRACE=1 cargo run 2>&1";
+      cerr = ''cargo build 2>&1 | grep -E "^error(\[|:)" | head -40'';
+      cw   = "cargo clippy --message-format=short 2>&1 | grep -E \"^error|^warning\" | head -60";
+
       # ── Deploy ────────────────────────────────────────────────
       fly    = "flyctl";
 
@@ -96,8 +106,13 @@
       # Linha em branco antes do prompt — respira melhor com outputs longos
       add_newline = true;
 
-      # Formato da linha: contexto + dir + git + nix + lang + fim
-      format = "$nix_shell$directory$git_branch$git_status$python$nodejs$rust$lua$cmd_duration$line_break$character";
+      # Formato da linha (esquerda): só o cursor — da Vinci layout
+      # Todo o contexto âncora na DIREITA via right_format
+      format = "$line_break$character";
+
+      # Formato da DIREITA: contexto lido da direita para a esquerda
+      # Nix → dir → git → lang → duração — como da Vinci escrevia
+      right_format = "$cmd_duration$rust$lua$nodejs$python$git_status$git_branch$directory$nix_shell";
 
       character = {
         success_symbol = "[❯](bold #7aa2f7)";
@@ -182,4 +197,41 @@
     # Se quiser que `cd` também use zoxide, mude para: options = [ "--cmd cd" ];
     options = [];
   };
+
+  programs.zsh.initContent = ''
+    # ── Criar projeto Rust a partir dos templates ────────────────────
+    # Uso: new-native meu-backend   → cria ~/projetos/meu-backend
+    #      new-wasm   meu-frontend  → cria ~/projetos/meu-frontend
+    _rust_new() {
+      local template="$1" name="$2"
+      if [[ -z "$name" ]]; then
+        echo "uso: ''${template/rust-/new-} <nome-do-projeto>"
+        return 1
+      fi
+      local dest="$HOME/projetos/$name"
+      if [[ -d "$dest" ]]; then
+        echo "❌ já existe: $dest"
+        return 1
+      fi
+      mkdir -p "$HOME/projetos"
+      cp -r "/etc/nixos/templates/$template" "$dest"
+      sed -i "s/name *= *\"meu-projeto\"/name = \"$name\"/" "$dest/Cargo.toml"
+      cd "$dest"
+      git init -q
+      git add .
+      echo "✅ $dest"
+      echo "   template : $template"
+      echo "   toolchain: $(rustup show active-toolchain 2>/dev/null || echo 'ver rust-toolchain.toml')"
+    }
+    new-native() { _rust_new "rust-native-project" "$1"; }
+    new-wasm()   { _rust_new "rust-wasm-project"   "$1"; }
+
+    # ── Prompt sempre ancorado no fundo da janela ───────────────────
+    # Imprime $LINES linhas em branco antes de cada prompt —
+    # o output sobe, o cursor sempre aparece na base da tela.
+    _prompt_at_bottom() {
+      printf '\n%.0s' $(seq 1 $(( LINES / 4 )))
+    }
+    precmd_functions+=(_prompt_at_bottom)
+  '';
 }

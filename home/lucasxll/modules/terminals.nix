@@ -37,7 +37,7 @@
       config.use_fancy_tab_bar  = false
       config.enable_scroll_bar  = true
       config.scrollback_lines   = 5000
-      config.window_padding     = { left = 8, right = 14, top = 6, bottom = 6 }
+      config.window_padding     = { left = 8, right = 14, top = 6, bottom = 20 }
 
       -- ── Cursor ───────────────────────────────────────────────────
       config.default_cursor_style = 'BlinkingBlock'

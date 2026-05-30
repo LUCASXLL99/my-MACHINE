@@ -252,7 +252,7 @@
   # INTEGRAÇÕES NO ZSH
   # ══════════════════════════════════════════════════════════════
   programs.zsh = {
-    initExtra = ''
+    initContent = ''
       # ── zoxide (cd inteligente) ─────────────────────────────────
       # z <query>  → vai para o diretório mais frequente que bate
       # zi <query> → escolhe com fzf interativo

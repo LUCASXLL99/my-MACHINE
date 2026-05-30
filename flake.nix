@@ -2,8 +2,14 @@
   description = "lucasxll nixos config";
 
   nixConfig = {
-    extra-substituters        = [ "https://noctalia.cachix.org" ];
-    extra-trusted-public-keys = [ "noctalia.cachix.org-1:pCOR47nnMEo5thcxNDtzWpOxNFQsBRglJzxWPp3dkU4=" ];
+    extra-substituters = [
+      "https://noctalia.cachix.org"
+      "https://pi.cachix.org"          # binários do pi-coding-agent pré-compilados
+    ];
+    extra-trusted-public-keys = [
+      "noctalia.cachix.org-1:pCOR47nnMEo5thcxNDtzWpOxNFQsBRglJzxWPp3dkU4="
+      "pi.cachix.org-1:lGeoGJaZ5ZDabuRzkcD5EBTNnDM4HJ1vqeOxlWk1Flk="  # lukasl-dev/pi.nix
+    ];
   };
 
   inputs = {
@@ -29,18 +35,43 @@
       url = "github:noctalia-dev/noctalia-shell";
       inputs.nixpkgs.follows = "nixpkgs-unstable";
     };
+
+    # ── Coding agents ────────────────────────────────────────────────
+    # opencode: sempre na versão mais nova (auto-atualiza de hora em hora,
+    # baixa o binário nativo do GitHub e aplica autoPatchelfHook pro NixOS).
+    # nixpkgs.follows = "nixpkgs" evita baixar um nixpkgs extra só pra isso.
+    opencode-nix = {
+      url    = "github:dan-online/opencode-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, home-manager, stylix, noctalia, ... } @ inputs:
+  outputs = { self, nixpkgs, home-manager, stylix, noctalia, opencode-nix, ... } @ inputs:
   let
     system      = "x86_64-linux";
-    pkgs        = nixpkgs.legacyPackages.${system};
+    # Overlay aplicado aqui — antes do home-manager ver o nixpkgs.
+    # Isso elimina o warning "useGlobalPkgs + nixpkgs.overlays" porque
+    # o HM herda esse nixpkgs já com o overlay aplicado, sem precisar
+    # declarar nixpkgs.overlays dentro do módulo NixOS.
+    overlays = [
+      (_: prev: {
+        makeModulesClosure = x:
+          prev.makeModulesClosure (x // { allowMissing = true; });
+      })
+      opencode-nix.overlays.default   # expõe pkgs.opencode sempre atualizado
+      # pi-coding-agent ainda não chegou no nixos-25.05 — puxa do unstable.
+      (_: _: {
+        pi-coding-agent =
+          (import inputs.nixpkgs-unstable { inherit system; config.allowUnfree = true; }).pi-coding-agent;
+      })
+    ];
+    pkgs          = import nixpkgs { inherit system overlays; config.allowUnfree = true; };
     pkgs-unstable = inputs.nixpkgs-unstable.legacyPackages.${system};
   in
   {
     nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
-      inherit system;
-      specialArgs = { inherit inputs; };
+      inherit system pkgs;
+      specialArgs = { inherit inputs pkgs-unstable; };
       modules = [
         ./hosts/nixos/default.nix
       ];

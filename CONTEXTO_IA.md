@@ -87,7 +87,7 @@ home/lucasxll/
 | Mod+Shift+D | rofi -show run |
 | Mod+Space | noctalia launcher toggle (**noctalia saiu do Mod+D**) |
 | Mod+R | fuzzel |
-| Mod+A | android-studio (com wait para xwayland) (**novo**) |
+| Mod+A | android-studio (aguarda socket X1 — evita race condition) |
 | Mod+E | dolphin |
 | Mod+W / Mod+Shift+Q | fecha janela |
 | Mod+F | maximiza coluna |
@@ -155,11 +155,11 @@ O xwayland-satellite tem ExecStartPre que aguarda WAYLAND_DISPLAY no bus, e Exec
 **Arquivo**: `home/lucasxll/modules/niri.nix`
 
 ### 2. Android Studio não abre pelo launcher — **CORRIGIDO**
-**Causa**: O `.desktop` do android-studio (gerado pelo nixpkgs) continha o caminho absoluto do nix store original no campo `Exec=`. O `symlinkJoin` + `wrapProgram` envolvia `$out/bin/android-studio` com `DISPLAY=:0`, mas o launcher (rofi, noctalia) lia o `.desktop` e chamava o binário **original não-wrapped**, sem variáveis de ambiente. A janela nunca aparecia e nenhum erro era exibido.  
+**Causa**: O `.desktop` do android-studio (gerado pelo nixpkgs) continha o caminho absoluto do nix store original no campo `Exec=`. O `symlinkJoin` + `wrapProgram` envolvia `$out/bin/android-studio` com `DISPLAY=:1`, mas o launcher (rofi, noctalia) lia o `.desktop` e chamava o binário **original não-wrapped**, sem variáveis de ambiente. A janela nunca aparecia e nenhum erro era exibido.  
 **Fix**: No `postBuild`, após o `wrapProgram`, o `.desktop` é copiado (de symlink para arquivo real) e o `Exec=` é substituído pelo caminho do wrapper via `sed`.  
 **Arquivo**: `hosts/nixos/default.nix`
 
-Adicionalmente, `Mod+A` foi adicionado como keybind dedicada que aguarda o socket `/tmp/.X11-unix/X0` por até 10s antes de abrir, evitando race condition logo após o login.
+`Mod+A` aguarda o socket `/tmp/.X11-unix/X1` por até 10s antes de lançar, evitando race condition logo após o login (xwayland-satellite ainda subindo).
 
 ### 3. `sudo` falha com "must have setuid bit set" — **CORRIGIDO**
 **Causa**: O PATH definido no bloco `environment {}` do niri não incluía `/run/wrappers/bin`. No NixOS, o `sudo` com setuid real fica em `/run/wrappers/bin/sudo`. A versão em `/run/current-system/sw/bin/sudo` é apenas um symlink para o nix store, que é montado com `nosuid`. Todo terminal aberto pelo niri (wezterm, kitty) herdava esse PATH defeituoso.  

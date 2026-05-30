@@ -81,9 +81,12 @@
       };
 
       wallpaper = {
-        enabled                   = true;
+        enabled                   = false;   # false → mpvpaper gerencia via systemd
         directory                 = "/home/lucasxll/Pictures/wallpapers";
-        automationEnabled         = true;
+        # false → mpvpaper (wallpaper.nix) gerencia o wallpaper via systemd.
+        # Com true, o noctalia trocava o wallpaper aleatoriamente e matava
+        # o mpvpaper; o disableAutomation via IPC no niri era frágil demais.
+        automationEnabled         = false;
         wallpaperChangeMode       = "random";
         randomIntervalSec         = 300;
         transitionDuration        = 1500;
@@ -94,7 +97,7 @@
 
       notifications = {
         enabled                  = true;
-        location                 = "top_right";
+        location                 = "top_left";
         lowUrgencyDuration       = 4;
         normalUrgencyDuration    = 8;
         criticalUrgencyDuration  = 0;
