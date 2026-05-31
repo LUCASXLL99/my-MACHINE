@@ -1,0 +1,30 @@
+[prefs]
+summary = true
+wrap = false
+
+[jobs.build]
+command = ["cargo", "build", "--message-format=short"]
+need_stdout = false
+
+[jobs.build-wasm]
+command = ["wasm-pack", "build", "--target", "web", "--out-dir", "pkg"]
+need_stdout = false
+
+[jobs.clippy]
+command = ["cargo", "clippy", "--message-format=short", "--", "-D", "warnings"]
+need_stdout = false
+
+[jobs.test]
+command = ["cargo", "test", "--message-format=short"]
+need_stdout = true
+
+[jobs.doc]
+command = ["cargo", "doc", "--no-deps"]
+need_stdout = false
+
+[keybindings]
+b = "job:build"
+w = "job:build-wasm"
+c = "job:clippy"
+t = "job:test"
+d = "job:doc"
