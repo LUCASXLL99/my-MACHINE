@@ -43,6 +43,14 @@ in
       General.RememberLastUser    = false;
       General.RememberLastSession = false;
       Users.RememberLastUser      = false;
+
+      # Autologin explícito no SDDM — necessário além de
+      # services.displayManager.autoLogin no host: o SDDM Qt6 às vezes
+      # ignora o autoLogin do displayManager quando há tema customizado.
+      # Relogin = false evita loop infinito se a sessão travar no boot.
+      Autologin.User    = "lucasxll";
+      Autologin.Session = "niri";
+      Autologin.Relogin = false;
     };
   };
 }
