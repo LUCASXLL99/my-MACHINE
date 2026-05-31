@@ -1,14 +1,8 @@
 # home/lucasxll/modules/terminals.nix
 #
-# WezTerm e Kitty.
-#
-# KITTY: cores gerenciadas pelo Stylix (stylix.targets.kitty.enable = true).
-#        Apenas layout, fonte e atalhos ficam aqui.
-#
-# WEZTERM: Stylix desativado (wezterm usa Lua, integração mais complexa).
-#          As cores Tokyo Night estão hardcoded no extraConfig Lua.
-#          Para migrar: ativar stylix.targets.wezterm em stylix.nix e remover
-#          `config.color_scheme = 'Tokyo Night'` do extraConfig.
+# WezTerm: Stylix desativado — cores Tokyo Night hardcoded em Lua.
+#   Para migrar: stylix.targets.wezterm = true + remover color_scheme abaixo.
+# Kitty: cores via Stylix (stylix.targets.kitty = true em stylix.nix).
 
 { lib, ... }:
 
@@ -19,35 +13,32 @@
       local config = wezterm.config_builder()
       local act    = wezterm.action
 
-      -- ── Fonte ────────────────────────────────────────────────────
+      -- Fonte
       config.font      = wezterm.font('JetBrainsMono Nerd Font', { weight = 'Regular' })
       config.font_size = 14.0
       config.line_height = 1.2
-
       config.freetype_load_target   = 'Light'
       config.freetype_render_target = 'HorizontalLcd'
 
-      -- ── Cores ────────────────────────────────────────────────────
-      -- NOTA: quando stylix.targets.wezterm = true, remover esta linha
-      -- e deixar Stylix injetar a paleta automaticamente
+      -- Cores (remover quando stylix.targets.wezterm = true)
       config.color_scheme = 'Tokyo Night'
 
-      -- ── Layout ───────────────────────────────────────────────────
+      -- Layout
       config.tab_bar_at_bottom  = false
       config.use_fancy_tab_bar  = false
       config.enable_scroll_bar  = true
       config.scrollback_lines   = 5000
       config.window_padding     = { left = 8, right = 14, top = 6, bottom = 20 }
 
-      -- ── Cursor ───────────────────────────────────────────────────
+      -- Cursor
       config.default_cursor_style = 'BlinkingBlock'
       config.cursor_blink_rate    = 500
 
-      -- ── Janela ───────────────────────────────────────────────────
+      -- Janela
       config.window_decorations        = "RESIZE"
       config.window_background_opacity = 0.82
 
-      -- ── Atalhos ──────────────────────────────────────────────────
+      -- Atalhos
       config.keys = {
         {
           key = 'c', mods = 'CTRL',
@@ -80,30 +71,19 @@
         { key = '0', mods = 'CTRL', action = act.ResetFontSize    },
       }
 
-      -- ── Mouse ────────────────────────────────────────────────────
-      -- Botão direito:
-      --   • Pressionar + arrastar  → seleciona texto (com auto-scroll na borda)
-      --   • Soltar após arrastar   → copia para PrimarySelection
-      --   • Clique simples (sem arrastar) → copia célula sob cursor para Primary
-      --
-      -- O problema anterior: Down=Paste consumia o evento de pressionar,
-      -- impedindo que o drag iniciasse qualquer seleção. O WezTerm nunca
-      -- registrava o ponto inicial, então arrastar até a borda não fazia
-      -- nada — o texto ficava preso no limite visível da tela.
+      -- Mouse: botão direito seleciona + copia para PrimarySelection.
+      -- Down=Paste bloquearia o início do drag — por isso Down=Select.
       config.mouse_bindings = {
-        -- Down: inicia a seleção na célula sob o cursor
         {
           event  = { Down = { streak = 1, button = 'Right' } },
           mods   = 'NONE',
           action = act.SelectTextAtMouseCursor 'Cell',
         },
-        -- Drag: estende a seleção (auto-scroll ativa quando chega na borda)
         {
           event  = { Drag = { streak = 1, button = 'Right' } },
           mods   = 'NONE',
           action = act.ExtendSelectionToMouseCursor 'Cell',
         },
-        -- Up: finaliza e copia para PrimarySelection
         {
           event  = { Up = { streak = 1, button = 'Right' } },
           mods   = 'NONE',
@@ -114,5 +94,4 @@
       return config
     '';
   };
-
 }

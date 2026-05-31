@@ -1,7 +1,5 @@
 # home/lucasxll/modules/picom.nix
-#
-# use-damage = false → resolve o bug de janelas "deformando" ao trocar foco
-# principalmente Vivaldi/Chromium no GLX com bspwm
+# use-damage = false → resolve janelas "deformando" ao trocar foco (Vivaldi/Chromium no GLX)
 
 { ... }:
 
@@ -18,23 +16,15 @@
     settings = {
       shadow-radius  = 10;
       corner-radius  = 8;
-
-      inactive-opacity       = 0.88;
-      active-opacity         = 1.0;
-
+      inactive-opacity = 0.88;
+      active-opacity   = 1.0;
       blur-method    = "dual_kawase";
       blur-strength  = 4;
-
-      # false → resolve janelas deformando ao trocar foco (Vivaldi/Chromium)
-      use-damage     = false;
-
+      use-damage     = false;  # fix: janelas deformando ao trocar foco
       detect-rounded-corners = true;
-
-      # evita tearing e artefatos visuais no GLX
       glx-no-stencil             = true;
       glx-copy-from-front        = false;
       glx-use-copysubbuffer-mesa = false;
-
       shadow-exclude = [
         "name = 'Notification'"
         "class_g = 'Polybar'"

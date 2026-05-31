@@ -1,72 +1,43 @@
-# nixos-Modules/Modules-Hardware/input-left-handed.nix
+# modules/nixos/hardware/input-left-handed.nix
 #
-# Inverte os controles do mouse — funciona em X11 e parcialmente em Wayland.
+# Inverte os controles do mouse.
 #
-# ┌─────────────────────────────────────────────────────────────────┐
-# │  O que funciona em cada protocolo:                              │
-# │                                                                 │
-# │  X11 (BSPWM):                                                   │
-# │    ✓ Natural scrolling  (via xinput)                            │
-# │    ✓ Inversão X + Y     (via Coordinate Transformation Matrix)  │
-# │                                                                 │
-# │  Wayland (Niri, Plasma Wayland):                                │
-# │    ✓ Natural scrolling  (via services.libinput — global)        │
-# │    ✗ Inversão de eixos  — protocolo Wayland não expõe           │
-# │      Coordinate Transformation Matrix para mice.                │
-# │      Cada compositor precisa lidar por conta:                   │
-# │        • Niri:           transform "flipped" no output          │
-# │          (inverte X do cursor junto com a tela)                 │
-# │        • Plasma Wayland: configurar via KWin settings           │
-# └─────────────────────────────────────────────────────────────────┘
+# ┌────────────┬────────────────────────────────────────────────────┐
+# │ X11        │ Natural scrolling ✓  Inversão X+Y ✓ (xinput CTM) │
+# │ Wayland    │ Natural scrolling ✓  Inversão: niri usa transform  │
+# │            │ "flipped" no output — Wayland não expõe CTM       │
+# └────────────┴────────────────────────────────────────────────────┘
 
 { pkgs, ... }:
 
 {
   services.libinput = {
     enable = true;
-
-    # ── Configuração declarativa — aplica em X11 E em Wayland ──────
-    # Natural scrolling: rolar para baixo → conteúdo sobe (estilo touchpad Mac)
-    mouse = {
-      naturalScrolling = true;
-    };
+    mouse    = { naturalScrolling = true; };
     touchpad = {
-      naturalScrolling  = true;
-      tapping           = true;   # clique ao toque leve
+      naturalScrolling   = true;
+      tapping            = true;
       disableWhileTyping = true;
     };
   };
 
-  # ── Wayland: regra udev para dispositivos virtuais [inv] ───────────
-  # O libinput (usado pelo Niri e outros compositores Wayland) descobre
-  # dispositivos via udev — não lê /dev/input diretamente como o X11.
-  # Quando o mouse-invert.py cria dispositivos via UInput, o udev não
-  # propaga automaticamente ID_INPUT_MOUSE=1, então o libinput os ignora.
-  # Esta regra conserta isso: qualquer evento cujo nome contenha "[inv]"
-  # recebe as propriedades necessárias para o libinput reconhecê-lo.
-  # Nota: \[ e \] são obrigatórios — no udev [ ] são glob de char class.
+  # Regra udev para dispositivos virtuais [inv] criados pelo mouse-invert.py.
+  # Sem ela o libinput ignora os dispositivos UInput (não têm ID_INPUT_MOUSE=1).
+  # \[ e \] obrigatórios — no udev [ ] são glob de char class.
   services.udev.extraRules = ''
     SUBSYSTEM=="input", KERNEL=="event*", ATTRS{name}=="*\[inv\]*", ENV{ID_INPUT}="1", ENV{ID_INPUT_MOUSE}="1"
   '';
 
-  # ── X11 apenas: sessionCommands ────────────────────────────────────
-  # xinput e Coordinate Transformation Matrix são conceitos X11 puros.
-  # Em sessões Wayland (Niri, Plasma Wayland) este bloco é ignorado.
+  # X11: aplica xinput CTM (ignorado em Wayland)
   services.xserver.displayManager.sessionCommands = ''
-    # Aguarda X estabilizar
     sleep 1
-
     _apply_input() {
       for id in $(${pkgs.xorg.xinput}/bin/xinput list --id-only 2>/dev/null); do
         props=$(${pkgs.xorg.xinput}/bin/xinput list-props "$id" 2>/dev/null)
-
-        # Natural Scrolling
         if echo "$props" | grep -q "libinput Natural Scrolling Enabled ("; then
           ${pkgs.xorg.xinput}/bin/xinput set-prop "$id" \
             "libinput Natural Scrolling Enabled" 1 || true
         fi
-
-        # Inversão dos eixos — rotação 180° (X e Y invertidos)
         if echo "$props" | grep -q "Coordinate Transformation Matrix"; then
           ${pkgs.xorg.xinput}/bin/xinput set-prop "$id" \
             "Coordinate Transformation Matrix" \
@@ -74,20 +45,12 @@
         fi
       done
     }
-
     _apply_input
-
-    # Reaplica após 5s para dispositivos que demoram para ser reconhecidos
     (sleep 5 && _apply_input) &
   '';
 
-  # ── Sistema: mouse-invert como serviço raiz (SDDM + niri) ──────────
-  #
-  # Roda antes do display-manager → dispositivos [inv] existem no SDDM
-  # Wayland. Fica ativo durante a sessão niri também (sem serviço de
-  # usuário conflitante). O modo (y/xy) é lido de /run/mouse-invert-mode;
-  # se o arquivo não existir, usa "y" (tela espelhada por padrão).
-
+  # Serviço de sistema: roda antes do display-manager → funciona no SDDM e no niri.
+  # Modo lido de /run/mouse-invert-mode; padrão "xy" se ausente.
   environment.systemPackages = let
     mouseInvert = pkgs.writers.writePython3Bin "mouse-invert" {
       libraries = [ pkgs.python3Packages.evdev ];
@@ -171,12 +134,10 @@
       ExecStart  = "/bin/sh -c 'MODE=$(cat /run/mouse-invert-mode 2>/dev/null || echo xy); exec mouse-invert $MODE'";
       Restart    = "on-failure";
       RestartSec = "3s";
-      # mouse-invert precisa do PATH do sistema para encontrar o binário
       Environment = "PATH=/run/current-system/sw/bin";
     };
   };
 
-  # Permite que lucasxll controle mouse-invert sem senha (para niri-mirror/reset)
   security.sudo.extraRules = [{
     users    = [ "lucasxll" ];
     commands = [
@@ -184,5 +145,4 @@
       { command = "/run/wrappers/bin/tee /run/mouse-invert-mode";              options = [ "NOPASSWD" ]; }
     ];
   }];
-
 }

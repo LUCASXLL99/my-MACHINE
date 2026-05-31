@@ -1,14 +1,10 @@
 # home/lucasxll/modules/screen-reflect.nix
-#
-# Espelha a tela horizontalmente em qualquer WM/DE
-# Funciona no KDE, bspwm e qualquer outro
-#
-# DESATIVAR: comentar o import no default.nix
+# Espelha a tela horizontalmente (X11 e KDE).
+# DESATIVAR: comentar o import em default.nix
 
 { pkgs, ... }:
 
 {
-  # Autostart via XDG — funciona no KDE e em qualquer DE que respeite XDG
   xdg.configFile."autostart/flip-screen.desktop".text = ''
     [Desktop Entry]
     Type=Application
@@ -19,12 +15,11 @@
     X-GNOME-Autostart-enabled=true
   '';
 
-  # Para bspwm — via systemd user service que roda após o login
   systemd.user.services.flip-screen = {
     Unit = {
-      Description    = "Flip screen horizontally";
-      After          = "graphical-session.target";
-      PartOf         = "graphical-session.target";
+      Description = "Flip screen horizontally";
+      After  = "graphical-session.target";
+      PartOf = "graphical-session.target";
     };
     Service = {
       Type      = "oneshot";

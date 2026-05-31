@@ -1,7 +1,6 @@
 # home/lucasxll/modules/hot-corner.nix
-#
 # Hot corner canto superior DIREITO → toggle overview do Niri.
-# Lê /dev/input/mice (Python stdlib puro, sem evdev).
+# Lê /dev/input/mice (Python stdlib, sem evdev).
 
 { pkgs, lib, ... }:
 
@@ -18,7 +17,6 @@ COOLDOWN  = 1.5
 x, y         = W // 2, H // 2
 last_trigger = 0.0
 
-# descobre o socket do niri
 def niri_socket():
     s = os.environ.get("NIRI_SOCKET", "")
     if s and os.path.exists(s):
@@ -37,7 +35,6 @@ def trigger():
 try:
     f = open("/dev/input/mice", "rb")
 except PermissionError:
-    # tenta via sudo udevadm ou simplesmente sai com mensagem
     import sys
     print("Sem acesso a /dev/input/mice — adicione o usuário ao grupo 'input'", flush=True)
     sys.exit(1)
@@ -49,7 +46,7 @@ while True:
     dx = struct.unpack("b", bytes([data[1]]))[0]
     dy = struct.unpack("b", bytes([data[2]]))[0]
     x  = max(0, min(W - 1, x + dx))
-    y  = max(0, min(H - 1, y - dy))   # eixo Y invertido no /dev/input/mice
+    y  = max(0, min(H - 1, y - dy))
 
     if x >= W - THRESHOLD and y <= THRESHOLD:
         now = time.monotonic()

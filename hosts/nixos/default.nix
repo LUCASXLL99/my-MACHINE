@@ -8,71 +8,47 @@
     ../../modules/nixos/hardware/sddm-reflect.nix
     ./hardware-configuration.nix
     ../../modules/nixos/hardware/input-left-handed.nix
-    ../../modules/nixos/hardware/bluetooth-audio.nix   # ← ADICIONADO (estava esquecido)
+    ../../modules/nixos/hardware/bluetooth-audio.nix
     ../../modules/nixos/hardware/kanata-keyboard
     ../../modules/nixos/software/no-keyring.nix
     ../../modules/nixos/software/yazi-deps.nix
     ../../modules/nixos/software/niri.nix
-    ../../modules/nixos/software/rust-dev.nix   # ← ferramentas Rust completas
-    ../../modules/nixos/software/wallcards.nix  # ← plugin wallpaper vídeo (Wallcards)
+    ../../modules/nixos/software/rust-dev.nix
+    ../../modules/nixos/software/wallcards.nix
     inputs.home-manager.nixosModules.home-manager
-    inputs.stylix.nixosModules.stylix               # ← STYLIX
+    inputs.stylix.nixosModules.stylix
   ];
 
-  # ── STYLIX — theming base16 unificado ────────────────────────
-  #
-  # Paleta escolhida: Tokyo Night Dark
-  # Motivo: já era o tema dominante em toda a config (waybar, mako, kitty,
-  # wezterm, dunst, fuzzel) — Nord só aparecia no Dolphin/KDE via kvantum.
-  # Unificar em Tokyo Night elimina a tensão entre os dois temas.
-  #
-  # Wallpaper: Stylix precisa de uma imagem para derivar a paleta quando
-  # o mode é "auto". Como usamos paleta fixa (base16Scheme inline) e o
-  # wallpaper é gerenciado pelo swww/feh, passamos um pixel de cor sólida.
-  # Para usar uma imagem real: stylix.image = /home/lucasxll/Pictures/wallpapers/wp.jpg;
+  # ── STYLIX — Tokyo Night Dark ─────────────────────────────────
+  # Paleta fixa + pixel sólido como wallpaper (não conflita com mpvpaper/feh).
   stylix.base16Scheme = {
-    # ── Tokyo Night Dark ────────────────────────────────────────
-    scheme      = "Tokyo Night Dark";
-    author      = "lucasxll (adaptado de enkia/tokyo-night-vscode-theme)";
-    base00      = "1a1b26"; # bg            — fundo principal
-    base01      = "16161e"; # bg_dark        — fundo mais escuro
-    base02      = "292e42"; # bg_highlight   — seleção / hover
-    base03      = "565f89"; # comment        — comentários, invisíveis
-    base04      = "9aa5ce"; # dark5          — fg escuro
-    base05      = "c0caf5"; # fg             — texto principal
-    base06      = "cfc9c2"; # fg_dark        — fg claro secundário
-    base07      = "d5d6db"; # white          — quase branco
-    base08      = "f7768e"; # red            — erros, diff deletado
-    base09      = "ff9e64"; # orange         — números, constantes
-    base0A      = "e0af68"; # yellow         — warnings, classes
-    base0B      = "9ece6a"; # green          — strings, diff inserido
-    base0C      = "73daca"; # teal           — suporte, regex
-    base0D      = "7aa2f7"; # blue           — funções, atributos
-    base0E      = "bb9af7"; # purple         — keywords
-    base0F      = "db4b4b"; # dark_red       — deprecated
+    scheme  = "Tokyo Night Dark";
+    author  = "lucasxll (adaptado de enkia/tokyo-night-vscode-theme)";
+    base00  = "1a1b26"; # bg
+    base01  = "16161e"; # bg_dark
+    base02  = "292e42"; # bg_highlight
+    base03  = "565f89"; # comment
+    base04  = "9aa5ce"; # dark5
+    base05  = "c0caf5"; # fg
+    base06  = "cfc9c2"; # fg_dark
+    base07  = "d5d6db"; # white
+    base08  = "f7768e"; # red
+    base09  = "ff9e64"; # orange
+    base0A  = "e0af68"; # yellow
+    base0B  = "9ece6a"; # green
+    base0C  = "73daca"; # teal
+    base0D  = "7aa2f7"; # blue
+    base0E  = "bb9af7"; # purple
+    base0F  = "db4b4b"; # dark_red
   };
 
-  # Pixel sólido como wallpaper para o Stylix (não conflita com swww/feh)
   stylix.image = config.lib.stylix.pixel "1a1b26";
 
   stylix.fonts = {
-    monospace = {
-      package = pkgs.nerd-fonts.jetbrains-mono;
-      name    = "JetBrainsMono Nerd Font";
-    };
-    sansSerif = {
-      package = pkgs.inter;
-      name    = "Inter";
-    };
-    serif = {
-      package = pkgs.inter;
-      name    = "Inter";
-    };
-    sizes = {
-      terminal    = 13;
-      applications = 11;
-      desktop     = 11;
-    };
+    monospace = { package = pkgs.nerd-fonts.jetbrains-mono; name = "JetBrainsMono Nerd Font"; };
+    sansSerif = { package = pkgs.inter; name = "Inter"; };
+    serif     = { package = pkgs.inter; name = "Inter"; };
+    sizes = { terminal = 13; applications = 11; desktop = 11; };
   };
 
   home-manager = {
@@ -80,9 +56,7 @@
     useUserPackages  = true;
     extraSpecialArgs = { inherit inputs; };
     backupFileExtension = "backup";
-    # O stylix release-25.05 novo não injeta mais o módulo HM automaticamente
-    # via nixosModules — é preciso declarar explicitamente aqui para que as
-    # opções `stylix.*` existam dentro de home-manager.users.lucasxll.
+    # stylix release-25.05 não injeta o módulo HM automaticamente — precisa ser explícito
     sharedModules = [ inputs.stylix.homeModules.stylix ];
     users.lucasxll = import ../../home/lucasxll/default.nix;
   };
@@ -128,84 +102,52 @@
     xkb.variant = "nodeadkeys";
     windowManager.bspwm.enable = true;
   };
-  # ── Autologin — sem tela de senha no SDDM ────────────────────
-  # O lockscreen (noctalia/hyprlock) continua protegendo após o boot.
-  services.displayManager.autoLogin = {
-    enable = true;
-    user   = "lucasxll";
-  };
-  # Sem defaultSession o SDDM não sabe para qual sessão fazer autologin
-  # e fica parado na tela de login mesmo com autoLogin.enable = true.
-  # "niri" corresponde ao arquivo niri.desktop em /share/wayland-sessions/
-  # instalado pelo programs.niri.enable em modules/nixos/software/niri.nix.
+
+  # Autologin — lockscreen (noctalia) protege após o boot
+  services.displayManager.autoLogin = { enable = true; user = "lucasxll"; };
+  # "niri" = niri.desktop em /share/wayland-sessions/ (instalado por programs.niri.enable)
   services.displayManager.defaultSession = "niri";
 
   # ── ÁUDIO ────────────────────────────────────────────────────
   security.rtkit.enable = true;
 
-  # ── Hyprlock precisa de entrada PAM para autenticar ──────────────
-  # Sem isso o hyprlock aceita a senha visualmente mas não consegue
-  # destravar a sessão — o sistema congela e só sai via TTY+kill.
-  security.pam.services.hyprlock  = {};
-  security.pam.services.noctalia  = {};  # lockscreen noctalia usa PAM
-  services.upower.enable = true;         # bateria no noctalia Control Center
+  # PAM para lockscreen (sem isso hyprlock/noctalia aceitam a senha mas não destravam)
+  security.pam.services.hyprlock = {};
+  security.pam.services.noctalia = {};
+  services.upower.enable = true;
 
-  # ── Logind: matar processos ao sair da sessão ────────────────────
-  # Sem killUserProcesses, ao trocar de TTY ou encerrar uma sessão
-  # niri, os serviços systemd --user (xwayland-satellite, mouse-invert,
-  # waybar…) continuam rodando na sessão "morta". Isso causa:
-  #   • Sessão niri "ativa" que bloqueia novo login
-  #   • Mouse invertido persistindo no bspwm
-  #   • Conflito de DISPLAY entre sessões
+  # killUserProcesses: evita serviços systemd --user "zumbis" após sair da sessão
+  # (causam sessão bloqueada, mouse invertido persistindo, conflito de DISPLAY)
   services.logind = {
     killUserProcesses = true;
-    # Fecha a sessão corretamente ao fechar a tampa ou desligar o monitor
-    lidSwitch       = "suspend";
-    lidSwitchDocked = "ignore";
-    # Reduz o delay de liberação de sessão — sem isso o logind espera até
-    # 5s para fechar a sessão anterior, o SDDM fica bloqueado e o login
-    # aparentemente "trava" ao tentar entrar logo após sair do niri.
+    lidSwitch         = "suspend";
+    lidSwitchDocked   = "ignore";
+    # Sem InhibitDelayMaxSec=2 o logind espera até 5s para fechar a sessão → SDDM "trava"
     extraConfig = ''
       InhibitDelayMaxSec=2
       HandlePowerKey=suspend
     '';
   };
 
-  # Limita a 2 sessões simultâneas por usuário (1 gráfica + 1 manager).
-  # O log mostrou sessions 6 (tty3) e 9 (tty4) rodando ao mesmo tempo —
-  # dois compositors em paralelo causam conflito de WAYLAND_DISPLAY e
-  # congelamento ao trocar TTY. Com maxlogins=2, o logind rejeita um
-  # terceiro login antes de matar a sessão anterior.
+  # maxlogins=4: evita dois compositors em paralelo (conflito de WAYLAND_DISPLAY)
   security.pam.loginLimits = [{
-    domain = "*";
-    type   = "hard";
-    item   = "maxlogins";
-    value  = "4";
+    domain = "*"; type = "hard"; item = "maxlogins"; value = "4";
   }];
+
   services.pipewire = {
     enable = true; alsa.enable = true;
     alsa.support32Bit = true; pulse.enable = true;
     wireplumber.enable = true;
   };
 
-  # ── IMPRESSÃO ────────────────────────────────────────────────
   services.printing.enable = true;
 
-  # ── DISPOSITIVOS REMOVÍVEIS ───────────────────────────────────
-  # udisks2: daemon que detecta e monta pen drives, HDs externos,
-  # teclados e qualquer dispositivo USB removível automaticamente.
-  # Sem ele, o Dolphin não consegue ver nem montar nada que plugar.
+  # udisks2: detecta e monta pen drives, HDs externos via Dolphin
   services.udisks2.enable = true;
-
-  # gvfs: camada de abstração de arquivos para apps GTK/KDE.
-  # Necessário para o Dolphin mostrar o dispositivo na barra lateral
-  # e para operações de copiar/mover funcionar com o file picker.
+  # gvfs: file picker GTK/KDE, barra lateral do Dolphin, copiar/mover
   services.gvfs.enable = true;
 
-  # ── MOUSE HOTPLUG ─────────────────────────────────────────────
-  # Reinicia o serviço mouse-invert-y quando qualquer mouse novo é
-  # plugado. Sem isso, mouses plugados após o login não são capturados
-  # porque o script Python faz find_mice() apenas na inicialização.
+  # Reinicia mouse-invert-y quando um mouse novo é plugado
   services.udev.extraRules = ''
     SUBSYSTEM=="input", ACTION=="add", ENV{ID_INPUT_MOUSE}=="1", \
       TAG+="systemd", ENV{SYSTEMD_USER_WANTS}="mouse-invert-y.service"
@@ -217,45 +159,27 @@
     enable = true;
     settings = {
       battery = { governor = "powersave"; turbo = "never"; };
-      # Na tomada: schedutil escala a freq pela carga real — silencioso em idle,
-      # acelera só quando há trabalho. "performance" mantinha todos os núcleos
-      # no máximo mesmo em idle, esquentando sem necessidade.
       charger = { governor = "schedutil"; turbo = "auto"; };
     };
   };
 
-  # ── UNDERVOLT — Ryzen 7 5700U (Zen 2 mobile) ─────────────────
-  # O 5700U não suporta Curve Optimizer (só Zen 3+).
-  # Reduzimos os limites de potência via ryzenadj:
-  #
-  #   STAPM (Sustained): potência média de longo prazo  → 10 W
-  #   FAST  (PPT Fast):  pico burst curto               → 12 W  ← era 15 W
-  #   SLOW  (PPT Slow):  potência média                 → 10 W
-  #   TCTL:              temperatura máxima             → 75 °C  ← era 85 °C
-  #
-  # TCTL=75 °C: o chip throttle antes de a fan rampear → fan quase inaudível.
-  # FAST=12 W = STAPM/SLOW: elimina bursts curtos que esquentam rápido.
-  # Para uso mais pesado (compilação longa): aumente FAST=14000 e TCTL=80.
-  # Para testar: stress-ng --cpu 8 --timeout 300 e observar btop.
-  # Reaplicado automaticamente após suspend/hibernate.
+  # Undervolt Ryzen 7 5700U — limita potência e temperatura
+  # STAPM=10W, FAST=12W, SLOW=10W, TCTL=75°C → fan quase inaudível
+  # Reaplicado após suspend/hibernate.
   systemd.services.ryzenadj = {
-    description = "RyzenAdj undervolt + CPU freq cap — Ryzen 7 5700U";
+    description = "RyzenAdj undervolt — Ryzen 7 5700U";
     wantedBy = [ "multi-user.target" "suspend.target" "hibernate.target" ];
     after    = [ "multi-user.target" "suspend.target" "hibernate.target" ];
     serviceConfig = {
       Type      = "oneshot";
       ExecStart = toString (pkgs.writeShellScript "ryzenadj-apply" ''
-        # ── Limites de potência ────────────────────────────────────
         ${pkgs.ryzenadj}/bin/ryzenadj \
           --stapm-limit=10000 \
           --fast-limit=12000  \
           --slow-limit=10000  \
           --tctl-temp=75
 
-        # ── Frequência máxima ~81% do boost máximo do 5700U ───────
-        # Boost máximo: 4300 MHz → 3500 MHz suficiente para Rust,
-        # browser e editor sem esquentar. Aumente para 4000000 se
-        # precisar de mais performance em compilações longas.
+        # 3500 MHz ≈ 81% do boost máximo (4300 MHz) — suficiente para dev cotidiano
         for policy in /sys/devices/system/cpu/cpufreq/policy*; do
           echo 3500000 > "$policy/scaling_max_freq" 2>/dev/null || true
         done
@@ -266,72 +190,38 @@
   # ── VIRTUALIZAÇÃO ────────────────────────────────────────────
   virtualisation.docker = {
     enable = true;
-
-    # Timeout de shutdown do daemon Docker.
-    # Sem isso o systemd espera 90 s (padrão) pelo Docker parar.
-    # O Docker usa esse valor para enviar SIGTERM aos containers antes
-    # de forçar SIGKILL — 10 s é suficiente para a maioria dos casos.
     daemon.settings.shutdown-timeout = 10;
   };
-
-  # Limita quanto tempo o systemd espera pelo serviço docker parar.
-  # Evita o "A stop job is running for Docker" travar o shutdown.
+  # Evita "A stop job is running for Docker" travar o shutdown
   systemd.services.docker.serviceConfig.TimeoutStopSec = "15s";
 
   # ── VARIÁVEIS DE AMBIENTE ──────────────────────────────────
   environment.sessionVariables = {
     ELECTRON_PASSWORD_STORE = "basic";
-
-    # ── Qt: NÃO forçar QT_QPA_PLATFORM globalmente ───────────────────
-    # Cada sessão tem necessidades diferentes:
-    #   - Niri (Wayland) → seta QT_QPA_PLATFORM=wayland no environment{} do KDL
-    #   - bspwm (X11)    → Qt detecta X11 sozinho, usa xcb por padrão
-    # Forçar "xcb" aqui quebra o Dolphin e apps Qt no Niri (precisariam de
-    # DISPLAY que pode não estar disponível). Forçar "wayland" quebra Qt no bspwm.
-    #
-    # QT_PLUGIN_PATH e QT_QPA_PLATFORM_PLUGIN_PATH foram removidos:
-    # apontavam para Qt5 hardcoded, mas Dolphin e apps KDE modernos no nixpkgs
-    # são Qt6 — esses paths são completamente ignorados pelo Qt6 e confundem
-    # o Qt5. O nixpkgs já injeta os paths corretos via wrappers dos pacotes.
-
-    # ── Android Studio / AWT ─────────────────────────────────────────
+    # QT_QPA_PLATFORM não é forçado globalmente:
+    #   Niri → seta "wayland" no environment{} do KDL
+    #   bspwm → Qt detecta X11 sozinho (xcb)
     _JAVA_AWT_WM_NONREPARENTING = "1";
-
-    # ── Rust / Cargo ─────────────────────────────────────────────────
-    OPENSSL_DIR = "${pkgs.openssl.dev}";
+    OPENSSL_DIR     = "${pkgs.openssl.dev}";
     OPENSSL_LIB_DIR = "${pkgs.openssl.out}/lib";
-    PATH = "$HOME/.cargo/bin:$PATH";
-
-    # ── WebAssembly / WASM ────────────────────────────────────────────
-    WASM_OPT = "${pkgs.binaryen}/bin/wasm-opt";
+    PATH            = "$HOME/.cargo/bin:$PATH";
+    WASM_OPT        = "${pkgs.binaryen}/bin/wasm-opt";
   };
 
   # ── SERVIÇOS ─────────────────────────────────────────────────
   services.dbus.enable           = true;
   services.spice-vdagentd.enable = true;
 
-  # ── XDG PORTALS ──────────────────────────────────────────────
-  # Sem xdg.portal.config, o xdg-desktop-portal não sabe qual backend
-  # usar para cada interface — file picker, screen share, etc.
-  # Resultado: Dolphin não abre dialog de arquivo, apps não conseguem
-  # compartilhar tela, e alguns apps travam esperando resposta do portal.
+  # XDG portals: screen share (wlr), file picker (gtk)
   xdg.portal = {
     enable = true;
-    extraPortals = [
-      pkgs.xdg-desktop-portal-gtk
-    ];
-    # Mapeia cada interface ao portal correto para sessões niri/wlroots
+    extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
     config = {
-      common = {
-        # Fallback para qualquer interface não mapeada explicitamente
-        default = [ "gtk" ];
-      };
+      common = { default = [ "gtk" ]; };
       niri = {
-        default                      = [ "gtk" ];
-        # Screen cast e remote desktop via wlr (compatível com niri/wlroots)
+        default                                      = [ "gtk" ];
         "org.freedesktop.impl.portal.ScreenCast"    = [ "wlr" ];
         "org.freedesktop.impl.portal.RemoteDesktop" = [ "wlr" ];
-        # File chooser e settings via GTK (mais estável fora do KDE/GNOME)
         "org.freedesktop.impl.portal.FileChooser"   = [ "gtk" ];
         "org.freedesktop.impl.portal.Settings"      = [ "gtk" ];
       };
@@ -341,40 +231,23 @@
   # ── PROGRAMAS ────────────────────────────────────────────────
   programs = {
     firefox.enable = false;
-    # Instala as regras udev do Android — necessário para ADB funcionar
-    # sem sudo. Sem isso, o kernel não dá permissão ao dispositivo mesmo
-    # com o usuário no grupo plugdev.
-    adb.enable = true;
+    adb.enable     = true;   # regras udev Android — ADB sem sudo
     nix-ld = {
       enable    = true;
-      # Bibliotecas necessárias para binários ELF dinâmicos não-nix:
-      # as 2 linhas originais cobrem compiladores; as demais são necessárias
-      # para o Android Studio, o emulador Android e componentes nativos do SDK.
       libraries = with pkgs; [
-        stdenv.cc.cc.lib glibc
-        zlib
+        stdenv.cc.cc.lib glibc zlib
         freetype fontconfig
-        libGL libGLU
-        libxkbcommon
+        libGL libGLU libxkbcommon
         xorg.libX11 xorg.libXext xorg.libXrender
         xorg.libXtst xorg.libXi xorg.libXfixes
-        # ── Rust: libs nativas para crates C-heavy ───────────────────
-        # Necessárias para ferramentas externas (binários ELF não-nix)
-        # que linkam dinamicamente contra essas libs em runtime.
-        openssl          # ring, rustls, reqwest com TLS nativo
-        postgresql.lib   # sqlx/diesel com feature postgres
-        sqlite           # rusqlite, sqlx com feature sqlite
-        libclang.lib     # bindgen em ferramentas externas
+        openssl postgresql.lib sqlite libclang.lib
       ];
     };
-    # NOTA: programas.zsh.enable = true é necessário para que zsh apareça em
-    # /etc/shells e possa ser shell de login. NÃO configure oh-my-zsh aqui —
-    # isso duplica com o Home Manager e gera conflito no /etc/zshrc.
-    # Todo o restante da config zsh fica em home/lucasxll/modules/zsh.nix.
+    # programs.zsh.enable = true necessário para zsh aparecer em /etc/shells.
+    # Config do zsh fica em home/lucasxll/modules/zsh.nix (não aqui — evita duplicata).
     zsh.enable = true;
   };
 
-  # ── FONTES ───────────────────────────────────────────────────
   fonts.packages = with pkgs; [
     nerd-fonts.jetbrains-mono
     noto-fonts
@@ -405,58 +278,31 @@
     };
   };
 
-  security.sudo.extraRules = [
-    {
-      users = [ "lucasxll" ];
-      commands = [
-        { command = "ALL"; options = [ "NOPASSWD" ]; }
-      ];
-    }
-  ];
+  security.sudo.extraRules = [{
+    users    = [ "lucasxll" ];
+    commands = [{ command = "ALL"; options = [ "NOPASSWD" ]; }];
+  }];
 
   # ── PACOTES DO SISTEMA ───────────────────────────────────────
-  # allowUnfree declarado no flake.nix durante a instanciação do pkgs.
   environment.systemPackages = with pkgs; [
     vim git wget htop fastfetch
     zip unzip
-    # ── Ferramentas Wayland / XWayland produtividade ─────────────────
-    # Screenshot
-    grim          # captura de tela wayland nativa
-    slurp         # seleção de área (usa junto com grim)
-    swappy        # edição/anotação rápida de screenshot
 
-    # Clipboard
-    wl-clipboard  # wl-copy / wl-paste — equivalente ao xclip no Wayland
-    cliphist      # histórico de clipboard com integração fuzzel/wofi
-
-    # Utilitários de janela / tela
-    wl-mirror     # espelha um output wayland em outro (útil para apresentações)
-    wlr-randr     # controle de outputs wayland (equivalente ao xrandr)
-
-    # Media / áudio
-    playerctl     # controle de media players via MPRIS (play/pause/next)
-    pavucontrol   # mixer de áudio gráfico
-
-    # Outros
-    xdg-utils     # xdg-open, xdg-mime — abre arquivos com o app certo
-    libnotify     # notify-send — notificações da linha de comando
+    # Wayland
+    grim slurp swappy
+    wl-clipboard cliphist
+    wl-mirror wlr-randr
+    playerctl pavucontrol
+    xdg-utils libnotify
     wezterm
 
     vivaldi obsidian onlyoffice-bin_latest gnome-disk-utility
     rofi
     kdePackages.dolphin kdePackages.ark
-    # ── Android Studio via XWayland-Satellite ────────────────────────
-    # O Android Studio usa Java AWT — uma tecnologia X11 pura que não
-    # fala Wayland. No Niri (compositor Wayland), ele precisa do
-    # xwayland-satellite para ter um servidor X onde renderizar.
-    #
-    # O wrapper abaixo garante que:
-    #   1. DISPLAY=:0 aponta para o socket do xwayland-satellite
-    #   2. _JAVA_AWT_WM_NONREPARENTING evita janelas invisíveis em
-    #      compositors que não fazem reparenting (como o Niri)
-    #
-    # Sem esse wrapper, abrir o Studio de qualquer launcher (fuzzel,
-    # terminal, .desktop) poderia herdar um DISPLAY vazio ou errado.
+
+    # Android Studio via xwayland-satellite (:1)
+    # Wrapper garante DISPLAY=:1 e _JAVA_AWT_WM_NONREPARENTING=1
+    # (o .desktop original aponta para o store e não teria as variáveis)
     (pkgs.symlinkJoin {
       name = "android-studio";
       paths = [ pkgs.android-studio ];
@@ -466,16 +312,6 @@
           --set DISPLAY ":1" \
           --set _JAVA_AWT_WM_NONREPARENTING "1"
 
-        # O .desktop gerado pelo nixpkgs contém o caminho absoluto do store
-        # original (ex: Exec=/nix/store/xxxx-android-studio/bin/android-studio).
-        # Quando um launcher (rofi, noctalia) lê esse .desktop e executa o Exec=,
-        # ele chama o binário ORIGINAL — sem DISPLAY=:0, sem _JAVA_AWT_WM_NONREPARENTING.
-        # O wrapProgram acima só envolve $out/bin/android-studio, então o .desktop
-        # precisa ser corrigido para apontar para esse wrapper.
-        # $out/share/applications/ é um symlink de diretório apontando para o
-        # store original (somente leitura). Qualquer tentativa de criar/editar
-        # arquivos dentro dele falha com Permission denied.
-        # Fix: recriar o diretório como real e copiar os .desktop já processados.
         apps="$out/share/applications"
         if [ -L "$apps" ]; then
           orig=$(readlink -f "$apps")
@@ -491,96 +327,22 @@
 
     python3 python312Packages.pip
 
-    # ── Rust core ────────────────────────────────────────────────────
-    # rustup gerencia toolchains (stable, nightly) e targets.
-    # Após o rebuild, rode:
-    #   rustup default stable
-    #   rustup target add wasm32-unknown-unknown
+    # Rust
     rustup
-
-    # ── WebAssembly — toolchain completo ─────────────────────────────
-    #
-    # wasm-pack  → compila o crate Rust para .wasm + gera bindings JS
-    #              uso: wasm-pack build --target web --out-dir pkg
-    # trunk      → dev-server com HMR para projetos Rust/WASM (alt. ao wasm-pack)
-    #              uso: trunk serve  (lê index.html com <link data-trunk ...>)
-    wasm-pack
-    trunk
-
-    # wasm-bindgen-cli — CLI autônoma do wasm-bindgen.
-    # Necessária quando se usa wasm-bindgen diretamente (sem wasm-pack)
-    # ou para inspecionar/re-gerar bindings manualmente.
-    # IMPORTANTE: a versão aqui deve coincidir com a do Cargo.toml.
+    wasm-pack trunk
     wasm-bindgen-cli
+    binaryen   # wasm-opt (usado pelo wasm-pack na otimização)
+    wabt       # wasm2wat, wat2wasm, wasm-validate, wasm-objdump
 
-    # binaryen — fornece o `wasm-opt`, usado pelo wasm-pack na fase de
-    # otimização do binário .wasm (-O3, --strip-debug, etc.).
-    # Sem ele, wasm-pack emite aviso e pula a otimização.
-    binaryen
-
-    # wabt (WebAssembly Binary Toolkit) — ferramentas de inspeção/debug:
-    #   wasm2wat       → converte .wasm binário em WAT (texto legível)
-    #   wat2wasm       → compila WAT de volta para .wasm
-    #   wasm-validate  → valida um .wasm sem executar
-    #   wasm-objdump   → inspeciona seções, imports, exports do .wasm
-    wabt
-
-    # ── Node.js — ecosistema JS auxiliar ─────────────────────────────
-    # Necessário para:
-    #   npx serve .          → servidor estático local para testar o .wasm
-    #   npx http-server .    → alternativa ao python3 -m http.server
-    #   npm install          → projetos que misturam WASM + bundler (Vite, Webpack)
     nodejs_22
 
-    # ── Cargo utilitários de desenvolvimento ─────────────────────────
-    # cargo-watch  → monitora arquivos e recompila automaticamente.
-    #                uso: cargo watch -s "wasm-pack build --target web"
-    cargo-watch
+    cargo-watch cargo-generate cargo-edit
+    cargo-nextest cargo-audit cargo-expand cargo-flamegraph
 
-    # cargo-generate → cria projetos a partir de templates Git.
-    #                  uso: cargo generate rustwasm/wasm-pack-template
-    cargo-generate
+    llvmPackages.lld  # linker para wasm32
+    mold              # linker rápido para binários nativos
 
-    # cargo-edit → manipula dependências via CLI (sem editar Cargo.toml manualmente).
-    #              uso: cargo add wasm-bindgen
-    #                   cargo upgrade
-    cargo-edit
-
-    # cargo-nextest → substituto do `cargo test`: mais rápido, output legível,
-    #                 suporte a filtros e retries.
-    #                 uso: cargo nextest run
-    cargo-nextest
-
-    # cargo-audit → verifica vulnerabilidades conhecidas (CVEs) nas dependências.
-    #               uso: cargo audit
-    #               Rode antes de publicar qualquer serviço.
-    cargo-audit
-
-    # cargo-expand → expande macros proc-macro para inspecionar o código gerado.
-    #                Indispensável para debugar derive macros e wasm-bindgen.
-    #                uso: cargo expand
-    cargo-expand
-
-    # cargo-flamegraph → profiling visual: gera flamegraph.svg do binário.
-    #                    uso: cargo flamegraph --bin meu-binario
-    cargo-flamegraph
-
-    # ── Linker / compilação nativa ────────────────────────────────────
-    # lld (LLVM linker) — linker padrão para targets WASM no Rust.
-    # Muito mais rápido que o GNU ld para wasm32-unknown-unknown.
-    # O Cargo o detecta automaticamente quando está no PATH.
-    llvmPackages.lld
-
-    # mold — linker ultrarrápido para binários nativos Linux.
-    # Não substitui o lld para WASM, mas acelera muito a compilação
-    # de crates nativos (proc-macros, build-scripts) que rodam no host.
-    mold
-
-    pkg-config
-    openssl
-    openssl.dev
-
-
+    pkg-config openssl openssl.dev
     gcc stdenv.cc.cc
     zulu8 openjdk11 jdk17 jdk21
 
@@ -593,106 +355,48 @@
     auto-cpufreq libnotify
     xwinwrap mpv yt-dlp
 
-    # ── Qt6 Wayland e integração KDE ─────────────────────────────────
-    # Qt6: backend Wayland para apps KDE/Qt6 modernos (Dolphin, etc.)
-    # libsForQt5.qt5.qtwayland removido — todos os apps KDE declarados
-    # aqui são kdePackages.* (Qt6). O bspwm (sessão reserva X11) não
-    # precisa de qtwayland — apps em X11 usam xcb diretamente.
+    # Qt6 Wayland — necessário para Dolphin e apps KDE no Niri
     kdePackages.qtwayland
-
-    # plasma-integration Qt6: plugin QT_QPA_PLATFORMTHEME=kde para Qt6.
-    # libsForQt5.plasma-integration removido — redundante com a versão Qt6.
-    # O Dolphin e os apps KDE declarados aqui são todos Qt6.
     kdePackages.plasma-integration
 
     xdg-desktop-portal-gtk
 
-    # ── Debugger ────────────────────────────────────────────────────
-    lldb              # debugger LLVM — base para codelldb / testes nativos
+    lldb
 
-    # ── LSP servers web ─────────────────────────────────────────────
-    nodePackages.typescript-language-server   # JS + TS
-    nodePackages.vscode-langservers-extracted # HTML + CSS + JSON + ESLint LSP
-    nodePackages."@tailwindcss/language-server"  # Tailwind CSS
-    emmet-language-server                     # emmet para HTML/CSS
-    nodePackages.prettier                     # formatador web
-    nodePackages.eslint                       # linter JS/TS
+    # LSP web
+    nodePackages.typescript-language-server
+    nodePackages.vscode-langservers-extracted
+    nodePackages."@tailwindcss/language-server"
+    emmet-language-server
+    nodePackages.prettier
+    nodePackages.eslint
 
-    # ── Rust LSP ────────────────────────────────────────────────────
-    rust-analyzer   # LSP Rust declarativo (não depende do rustup ativo)
-    rustfmt         # formatador Rust
+    # LSP Rust
+    rust-analyzer
+    rustfmt
 
-    # ── Terminal utilities para web dev ─────────────────────────────
-    lazygit   # TUI git — muito mais ergonômico que git CLI direto
-    httpie    # cliente HTTP legível
-    websocat  # testa WebSockets via terminal
-    jq        # processa JSON no terminal
-    yq-go     # processa YAML/TOML no terminal (yq-go é o pacote nixpkgs)
-    curlie    # curl com interface do httpie
-    # ── Deploy / backend ─────────────────────────────────────────────
-    # flyctl → CLI do Fly.io: deploy de serviços Rust com um comando.
-    #          uso: fly deploy  /  fly logs  /  fly ssh console
+    # CLI dev web
+    lazygit httpie websocat jq yq-go curlie
+
+    # Deploy / backend
     flyctl
-
-    # caddy → servidor HTTP/HTTPS com TLS automático (Let's Encrypt).
-    #         Melhor que nginx para dev local pois gera cert autoassinado
-    #         sem configuração. Útil para testar CSP real via HTTPS.
-    #         uso: caddy file-server --listen :8443
-    caddy
-
-    # sqlx-cli → migrações de banco de dados para projetos Rust com sqlx.
-    #            uso: sqlx migrate run  /  sqlx migrate add nome
+    caddy    # HTTPS local com TLS automático
     sqlx-cli
+    mkcert   # certificados HTTPS locais confiáveis pelo browser
 
-    # mkcert → gera certificados HTTPS locais confiáveis pelo browser.
-    #          Par perfeito com caddy para testar HTTPS sem aviso de cert.
-    #          uso: mkcert -install && mkcert localhost 127.0.0.1
-    mkcert
+    # Ferramentas de terminal
+    btop dust ripgrep fd tokei hyperfine
 
-    # ── Ferramentas de terminal ───────────────────────────────────────
-    # btop → monitor de sistema visual (substitui htop).
-    btop
+    # Docker
+    lazydocker dive
 
-    # dust → visualização de uso de disco por diretório (substitui du).
-    #        uso: dust  /  dust ~/rustteste
-    dust
-
-    # ripgrep → busca ultrarrápida em arquivos (respeita .gitignore).
-    #           uso: rg "pattern"
-    ripgrep
-
-    # fd → substituto ergonômico do `find`.
-    #      uso: fd nome  /  fd -e rs (arquivos .rs)
-    fd
-
-    # tokei → conta linhas de código por linguagem no projeto.
-    #         uso: tokei
-    tokei
-
-    # hyperfine → benchmarking de comandos shell com estatísticas.
-    #             uso: hyperfine "wasm-pack build --target web"
-    hyperfine
-
-    # ── Docker / virtualização ────────────────────────────────────────
-    # lazydocker → TUI para gerenciar containers, imagens e volumes Docker.
-    #              uso: lazydocker
-    lazydocker
-
-    # dive → inspeciona camadas de imagens Docker para otimizar tamanho.
-    #        uso: dive nome-da-imagem
-    dive
-
-    # ── Segurança / rede ─────────────────────────────────────────────
-    # wireshark → análise de pacotes de rede. Essencial ao expor serviços.
+    # Segurança
     wireshark
 
-    fx        # explorador de JSON interativo no terminal
+    fx  # explorador JSON interativo
   ];
 
-  # ── KDE SERVICE MENUS ───────────────────────────────────────────
-  # Garante que os service menus do Ark (compressão/extração no Dolphin)
-  # fiquem linkados em /run/current-system/sw/share/kservices5/.
-  # Sem isso, o Dolphin fora do Plasma não encontra os menus de contexto.
+  # KDE service menus (Ark no Dolphin fora do Plasma)
   environment.pathsToLink = [
     "/share/kservices5"
     "/share/kservices5/ServiceMenus"
@@ -704,7 +408,6 @@
   nix.settings = {
     experimental-features = [ "nix-command" "flakes" ];
     auto-optimise-store   = true;
-    # Permite que lucasxll use extra-substituters do flake sem prompt.
     trusted-users         = [ "root" "lucasxll" ];
   };
   nix.gc = {
@@ -713,9 +416,7 @@
     options   = "--delete-older-than 14d";
   };
 
-  # Workaround bug modules-shrunk NixOS 25.05
-  # O overlay makeModulesClosure foi movido para flake.nix (elimina warning useGlobalPkgs).
-  # Esta opção complementar ainda é necessária.
+  # Workaround bug modules-shrunk NixOS 25.05 (overlay em flake.nix)
   boot.initrd.includeDefaultModules = false;
   system.stateVersion = "25.05";
 }

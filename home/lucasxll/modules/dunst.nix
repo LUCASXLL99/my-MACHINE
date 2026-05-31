@@ -1,9 +1,5 @@
 # home/lucasxll/modules/dunst.nix
-#
-# Notificações X11 — estrutura e comportamento.
-# As CORES são gerenciadas pelo Stylix (stylix.targets.dunst.enable = true em stylix.nix).
-# Ao ativar o Stylix, ele injeta as cores base16 diretamente em services.dunst.settings.
-# O que permanece aqui: layout, fonte, timeouts, ações de mouse.
+# Layout e comportamento. Cores gerenciadas pelo Stylix (stylix.targets.dunst).
 
 { ... }:
 
@@ -27,7 +23,6 @@
         mouse_left_click  = "close_current";
         mouse_right_click = "do_action, close_current";
       };
-      # Timeouts — sem cores (Stylix cuida delas)
       urgency_low      = { timeout = 4; };
       urgency_normal   = { timeout = 6; };
       urgency_critical = { timeout = 0; };

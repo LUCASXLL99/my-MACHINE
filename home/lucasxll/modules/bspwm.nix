@@ -3,29 +3,15 @@
 { config, pkgs, ... }:
 
 {
-  # ── Pacotes exclusivos da sessão X11 ────────────────────────────
-  # Nada aqui é importado ou instalado quando a sessão ativa é o niri.
-  # (O bspwm.nix só é *declarado* — o NixOS não sobe esses processos
-  #  a menos que você faça login na sessão bspwm no SDDM.)
+  # Pacotes exclusivos da sessão X11 (só são iniciados se fizer login no bspwm)
   home.packages = with pkgs; [
-    # Tray X11
-    networkmanagerapplet    # nm-applet --indicator
-    blueman                 # blueman-applet
-
-    # Clipboard X11 (no Wayland o noctalia gerencia; copyq fica em clipboard.nix)
+    networkmanagerapplet
+    blueman
     copyq
-
-    # Imagens X11
-    feh                     # viewer e wallpaper setter
-    mpvpaper                # live wallpaper via mpv
-
-    # Screenshot X11 (no Wayland: grim+slurp via niri.nix)
+    feh
+    mpvpaper
     flameshot
-
-    # Live wallpaper X11
     xwinwrap
-
-    # Controle de mídia via Bluetooth
     playerctl
   ];
 
@@ -58,21 +44,14 @@
     startupPrograms = [
       "bspc monitor -d 1 2 3 4 5 6 7 8 9"
 
-      # ── Mouse invertido (Coordinate Transformation Matrix) ────────
-      # Backup do sessionCommands do input-left-handed.nix — garante
-      # que o xinput roda depois que o X reconheceu todos os dispositivos.
-      # sleep 2: aguarda udev/X propagar os dispositivos de input.
+      # sleep 2: aguarda udev/X propagar dispositivos de input antes de aplicar xinput
       "sleep 2; for id in $(${pkgs.xorg.xinput}/bin/xinput list --id-only 2>/dev/null); do ${pkgs.xorg.xinput}/bin/xinput set-prop \"$id\" 'Coordinate Transformation Matrix' -1 0 1 0 -1 1 0 0 1 2>/dev/null || true; done"
 
       "pkill sxhkd; sxhkd -c ${config.xdg.configHome}/sxhkd/sxhkdrc"
       "pkill picom; picom --config ${config.xdg.configHome}/picom/picom.conf"
       "pkill dunst; dunst"
-
       "pkill copyq; sleep 0.5; copyq"
-
-      # mpris-proxy: ponte entre botões do fone BT e players (Vivaldi, etc)
       "pkill mpris-proxy; mpris-proxy"
-
       "sleep 3; pkill nm-applet; nm-applet --indicator"
       "sleep 3; pkill blueman-applet; blueman-applet"
 
@@ -83,111 +62,95 @@
   };
 
   xdg.configFile."sxhkd/sxhkdrc".text = ''
-    # ── Terminal ─────────────────────────────────────────────────
+    # Terminal
     super + Return
       wezterm
-
     super + shift + Return
       kitty
 
-    # ── Launcher ─────────────────────────────────────────────────
+    # Launcher
     super + d
       rofi -show drun
-
     super + shift + d
       rofi -show run
 
-    # ── Gerenciador de arquivos ───────────────────────────────────
+    # Gerenciador de arquivos
     super + e
       dolphin
 
-    # ── Fechar / matar janela ─────────────────────────────────────
+    # Fechar / matar
     super + w
       bspc node -c
-
     super + shift + q
       bspc node -c
-
     super + ctrl + q
       bspc node -k
 
-    # ── Reiniciar bspwm / sxhkd ──────────────────────────────────
+    # Reiniciar bspwm / sxhkd
     super + shift + r
       bspc wm -r
-
     super + Escape
       pkill -USR1 -x sxhkd
 
-    # ── Foco entre janelas (hjkl) ─────────────────────────────────
+    # Foco (hjkl)
     super + {h,j,k,l}
       bspc node -f {west,south,north,east}
 
-    # ── Mover janela ─────────────────────────────────────────────
+    # Mover
     super + shift + {h,j,k,l}
       bspc node -s {west,south,north,east}
 
-    # ── Redimensionar janela ──────────────────────────────────────
+    # Redimensionar
     super + alt + {h,j,k,l}
       bspc node -z {left -20 0,bottom 0 20,top 0 -20,right 20 0}
 
-    # ── Layout ───────────────────────────────────────────────────
+    # Layout
     super + m
       bspc desktop -l next
-
     super + f
       bspc node -t ~fullscreen
-
     super + shift + f
       bspc node -t ~floating
-
     super + t
       bspc node -t ~tiled
 
-    # ── Trocar desktop ───────────────────────────────────────────
+    # Desktops
     super + {1-9}
       bspc desktop -f '{1-9}'
-
     super + shift + {1-9}
       bspc node -d '{1-9}'
 
-    # ── Volume via wpctl — funciona com fone BT e caixa ──────────
+    # Volume
     XF86AudioRaiseVolume
       wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+
-
     XF86AudioLowerVolume
       wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-
-
     XF86AudioMute
       wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
 
-    # ── Mídia — botões do fone via playerctl ──────────────────────
+    # Mídia
     XF86AudioPlay
       playerctl play-pause
-
     XF86AudioPause
       playerctl play-pause
-
     XF86AudioNext
       playerctl next
-
     XF86AudioPrev
       playerctl previous
 
-    # ── Brilho ───────────────────────────────────────────────────
+    # Brilho
     XF86MonBrightnessUp
       brightnessctl set +10%
-
     XF86MonBrightnessDown
       brightnessctl set 10%-
 
-    # ── Screenshot ───────────────────────────────────────────────
+    # Screenshot
     Print
       flameshot gui
-
     super + Print
       flameshot full
 
-    # ── Clipboard ────────────────────────────────────────────────
+    # Clipboard
     super + v
       copyq show
   '';

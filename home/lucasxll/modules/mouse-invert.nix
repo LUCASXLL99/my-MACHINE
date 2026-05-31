@@ -1,10 +1,7 @@
 # home/lucasxll/modules/mouse-invert.nix
 #
-# Scripts niri-mirror e niri-reset que controlam o serviço SISTEMA
-# mouse-invert.service (definido em input-left-handed.nix).
-#
-# A inversão roda como serviço de sistema (root) para cobrir SDDM e niri.
-# Os scripts usam sudo para trocar o modo (y ↔ xy) via arquivo de estado.
+# Scripts que controlam o serviço SISTEMA mouse-invert.service
+# (definido em input-left-handed.nix).
 
 { pkgs, ... }:
 
@@ -30,6 +27,4 @@ let
 in
 {
   home.packages = [ niriMirror niriReset ];
-  # Serviços de usuário removidos — mouse-invert agora é serviço de sistema
-  # definido em modules/nixos/hardware/input-left-handed.nix
 }

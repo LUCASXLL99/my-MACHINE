@@ -1,138 +1,54 @@
 # modules/nixos/software/rust-dev.nix
-#
-# Tudo que faltava para desenvolvimento Rust completo:
-#   aplicações nativas, serviços web/backend, WASM, banco de dados.
-#
-# Importar em hosts/nixos/default.nix:
-#   ../../modules/nixos/software/rust-dev.nix
+# Ferramentas Rust: nativas, web/backend, WASM, banco de dados.
 
 { pkgs, pkgs-unstable, ... }:
 
 {
-  # ── VARIÁVEIS DE AMBIENTE ────────────────────────────────────────
   environment.sessionVariables = {
-
-    # ── bindgen / FFI ────────────────────────────────────────────────
-    # Crates que geram bindings C (ring, aws-lc-rs, rdkafka, rocksdb…)
-    # usam bindgen internamente. No NixOS, o clang não fica num caminho
-    # padrão — sem LIBCLANG_PATH o bindgen falha com "libclang not found"
-    # mesmo com clang instalado no PATH.
+    # Necessário para crates com bindgen (ring, aws-lc-rs, rdkafka…)
     LIBCLANG_PATH = "${pkgs.libclang.lib}/lib";
 
-    # ── PostgreSQL (libpq) ───────────────────────────────────────────
-    # crates: sqlx (postgres feature), diesel (postgres feature), tokio-postgres
-    # O build.rs desses crates chama pg_config ou busca a lib diretamente.
-    # Sem isso: "could not find native static library `pq`"
+    # Necessário para sqlx/diesel com feature postgres
     PQ_LIB_DIR = "${pkgs.postgresql.lib}/lib";
 
-    # Cache local do sccache (padrão: ~/.cache/sccache, ~10GB máximo)
-    # Para usar cache remota (S3, GCS): configure SCCACHE_BUCKET aqui.
-    # RUSTC_WRAPPER movido para home/lucasxll/modules/cargo-config.nix
-    # ([build] rustc-wrapper no config.toml gerado pelo home-manager).
     SCCACHE_CACHE_SIZE = "10G";
   };
 
-  # ── PACOTES DO SISTEMA ──────────────────────────────────────────
   environment.systemPackages = with pkgs; [
-
-    # ── Build nativa de crates C-heavy ──────────────────────────────
-    # cmake: necessário para crates como aws-lc-sys, rdkafka, rocksdb,
-    # prost-build (gRPC), e qualquer build.rs que chame cmake.
+    # Build de crates C-heavy
     cmake
-
-    # ninja: backend de build ultrarrápido, usado pelo cmake quando disponível.
     ninja
+    clang
+    libclang
+    perl        # openssl-sys usa perl no build.rs
 
-    # clang + libclang: compilador C/C++ e biblioteca de parsing.
-    # clang       → compilador (para crates que compilam código C no build.rs)
-    # libclang    → biblioteca que o bindgen usa para parsear headers C
-    # clang-tools → clangd LSP, clang-format, clang-tidy (opcional mas útil)
-    clang      # wrapper nixpkgs — injeta paths corretos do NixOS
-    libclang   # biblioteca para bindgen
-
-    # perl: o crate openssl-sys usa perl no build.rs para configurar o build.
-    # Sem perl: "Can't locate FindBin.pm" durante `cargo build`.
-    perl
-
-    # ── Banco de dados ───────────────────────────────────────────────
-    # PostgreSQL — servidor local para desenvolvimento
-    # Não precisa rodar como serviço: use `pg_ctl` ou Docker.
-    # O que importa aqui são as libs (libpq) e o cliente (psql).
-    postgresql   # inclui psql, pg_dump, libpq, pg_config
-
-    # Redis — servidor local + cliente CLI
-    # Crates: redis, deadpool-redis, fred
-    redis        # inclui redis-server e redis-cli
-
-    # SQLite — banco embutido, muito usado em projetos menores
-    # Crates: rusqlite, sqlx (sqlite feature)
+    # Banco de dados
+    postgresql  # libpq + psql + pg_config
+    redis
     sqlite
-
-    # diesel-cli com suporte a postgres + sqlite (os mais comuns)
-    # Alternativa ao sqlx-cli para quem usa o ORM Diesel.
-    # Compilar com features específicas evita dependências desnecessárias.
     (diesel-cli.override {
-      sqliteSupport   = true;
+      sqliteSupport     = true;
       postgresqlSupport = true;
-      mysqlSupport    = false;
+      mysqlSupport      = false;
     })
 
-    # ── Cache de compilação ──────────────────────────────────────────
-    # sccache (Mozilla) — o mais compatível com Rust no NixOS.
-    # Configurado via [build] rustc-wrapper em home/lucasxll/modules/cargo-config.nix.
-    # Limpar o cache: sccache --stop-server && rm -rf ~/.cache/sccache
-    # Estatísticas: sccache --show-stats
+    # Cache de compilação (configurado em cargo-config.nix)
     sccache
 
-    # ── Dev loop melhorado ───────────────────────────────────────────
-    # bacon — substituto do cargo-watch focado em erros/warnings.
-    # Interface limpa que mostra só o que importa, sem scroll infinito.
-    # uso: bacon           → watch + build
-    #      bacon test      → watch + test
-    #      bacon clippy    → watch + clippy
-    #      bacon doc       → watch + doc
-    # Configurado por projeto em bacon.toml (gerado com: bacon --init)
-    bacon
+    # Dev loop
+    bacon       # substituto do cargo-watch focado em erros/warnings
 
-    # ── Protobuf / gRPC ─────────────────────────────────────────────
-    # protobuf: compilador protoc, necessário para crates prost + tonic.
-    # prost-build e tonic-build chamam protoc no build.rs automaticamente.
-    # Sem isso: "protoc: command not found" ao compilar serviços gRPC.
-    protobuf
-
-    # grpcurl — cliente gRPC de linha de comando (como curl para gRPC).
-    # Testa endpoints gRPC sem precisar escrever código cliente.
-    # uso: grpcurl -plaintext localhost:50051 list
+    # Protobuf / gRPC
+    protobuf    # protoc — necessário para prost + tonic
     grpcurl
 
-    # ── Ferramentas de qualidade de código ──────────────────────────
-    # cargo-deny — verifica licenças, advisories e deps duplicadas.
-    # Bloqueia dependências banidas antes do deploy.
-    # uso: cargo deny check
-    # Configurado em deny.toml na raiz do projeto.
-    pkgs-unstable.cargo-deny
-
-    # cargo-udeps — detecta dependências declaradas mas não usadas.
-    # Requer nightly: cargo +nightly udeps
-    # Mantém o Cargo.toml limpo e reduz tempo de compilação.
-    cargo-udeps
-
-    # cargo-tarpaulin — cobertura de testes em Linux.
-    # Gera relatório HTML ou XML (CI).
-    # uso: cargo tarpaulin --out Html
-    cargo-tarpaulin
-
-    # ── nix-ld: libs adicionais para binários ELF externos ──────────
-    # Já configurado no default.nix, mas precisamos adicionar libpq e
-    # openssl para ferramentas externas que linkam dinamicamente.
-    # (declarado via programs.nix-ld.libraries no default.nix — ver patch)
+    # Qualidade de código
+    pkgs-unstable.cargo-deny  # licenças, advisories, deps duplicadas
+    cargo-udeps               # detecta deps não usadas (requer nightly)
+    cargo-tarpaulin           # cobertura de testes
   ];
 
-  # ── SERVIÇOS LOCAIS DE DESENVOLVIMENTO ─────────────────────────
-  # PostgreSQL local — desativado por padrão para não consumir recursos.
-  # Para ativar: descomentar e fazer rebuild.
-  # Depois: createuser -s lucasxll; createdb lucasxll
-  #
+  # Para ativar PostgreSQL/Redis local, descomentar:
   # services.postgresql = {
   #   enable  = true;
   #   package = pkgs.postgresql;
@@ -141,13 +57,5 @@
   #     host  all all 127.0.0.1/32 trust
   #   '';
   # };
-
-  # Redis local — idem, desativado por padrão.
-  # Para ativar: descomentar e fazer rebuild.
-  # Depois: redis-cli ping
-  #
-  # services.redis.servers."dev" = {
-  #   enable = true;
-  #   port   = 6379;
-  # };
+  # services.redis.servers."dev" = { enable = true; port = 6379; };
 }

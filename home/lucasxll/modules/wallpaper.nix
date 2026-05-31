@@ -1,5 +1,5 @@
 # Restart="always": cobre SIGTERM (noctalia mata o processo na subida).
-# ExecStart poleia o socket Wayland — resolve race com graphical-session.target.
+# ExecStart aguarda o socket Wayland — resolve race com graphical-session.target.
 
 { config, pkgs, ... }:
 
@@ -8,7 +8,7 @@ let
 
   launchScript = pkgs.writeShellScript "mpvpaper-launch" ''
     if [ -z "$WAYLAND_DISPLAY" ]; then
-      XDG_RUNTIME_DIR="''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+      XDG_RUNTIME_DIR="${'$'}{XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
       for _i in $(seq 1 30); do
         for _f in "$XDG_RUNTIME_DIR"/wayland-?; do
           [ -S "$_f" ] || continue
