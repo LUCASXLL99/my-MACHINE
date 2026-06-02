@@ -36,6 +36,11 @@
       inputs.nixpkgs.follows = "nixpkgs-unstable";
     };
 
+    niri = {
+      url    = "github:niri-community/niri";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # ── Coding agents ────────────────────────────────────────────────
     # opencode: sempre na versão mais nova (auto-atualiza de hora em hora,
     # baixa o binário nativo do GitHub e aplica autoPatchelfHook pro NixOS).
@@ -46,7 +51,7 @@
     };
   };
 
-  outputs = { self, nixpkgs, home-manager, stylix, noctalia, opencode-nix, ... } @ inputs:
+  outputs = { self, nixpkgs, home-manager, stylix, noctalia, niri, opencode-nix, ... } @ inputs:
   let
     system      = "x86_64-linux";
     # Overlay aplicado aqui — antes do home-manager ver o nixpkgs.
@@ -73,6 +78,7 @@
       inherit system pkgs;
       specialArgs = { inherit inputs pkgs-unstable; };
       modules = [
+        niri.nixosModules.niri
         ./hosts/nixos/default.nix
       ];
     };
