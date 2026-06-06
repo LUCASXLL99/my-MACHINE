@@ -49,26 +49,30 @@
 
   outputs = { self, nixpkgs, home-manager, stylix, noctalia, niri, opencode-nix, ... } @ inputs:
   let
-    system      = "x86_64-linux";
-    overlays = [
-      (_: prev: {
-        makeModulesClosure = x:
-          prev.makeModulesClosure (x // { allowMissing = true; });
-      })
-      opencode-nix.overlays.default
-      (_: _: {
-        pi-coding-agent =
-          (import inputs.nixpkgs-unstable { inherit system; config.allowUnfree = true; }).pi-coding-agent;
-      })
-    ];
-    pkgs          = import nixpkgs { inherit system overlays; config.allowUnfree = true; };
+    system        = "x86_64-linux";
     pkgs-unstable = inputs.nixpkgs-unstable.legacyPackages.${system};
   in
   {
     nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
-      inherit system pkgs;
+      inherit system;
       specialArgs = { inherit inputs pkgs-unstable; };
       modules = [
+        # ── Overlays e allowUnfree declarados aqui, dentro do sistema,
+        #    para não conflitar com home-manager.useGlobalPkgs.
+        {
+          nixpkgs.config.allowUnfree = true;
+          nixpkgs.overlays = [
+            (_: prev: {
+              makeModulesClosure = x:
+                prev.makeModulesClosure (x // { allowMissing = true; });
+            })
+            opencode-nix.overlays.default
+            (_: _: {
+              pi-coding-agent =
+                (import inputs.nixpkgs-unstable { inherit system; config.allowUnfree = true; }).pi-coding-agent;
+            })
+          ];
+        }
         niri.nixosModules.niri
         ./hosts/nixos/default.nix
       ];
