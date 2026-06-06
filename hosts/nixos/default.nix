@@ -1,6 +1,6 @@
 # hosts/nixos/default.nix
 
-{ config, pkgs, inputs, ... }:
+{ config, pkgs, lib, inputs, ... }:
 
 {
   imports = [
@@ -54,7 +54,13 @@
     useUserPackages  = true;
     extraSpecialArgs = { inherit inputs; };
     backupFileExtension = "backup";
-    sharedModules = [ inputs.stylix.homeModules.stylix ];
+    sharedModules = [
+      inputs.stylix.homeModules.stylix
+      # stylix.homeModules.stylix define nixpkgs.overlays internamente,
+      # o que dispara o aviso de useGlobalPkgs. Anulamos aqui para silenciá-lo
+      # sem perder nenhuma funcionalidade (o pkgs global já inclui os overlays).
+      { nixpkgs.overlays = lib.mkForce []; }
+    ];
     users.lucasxll = import ../../home/lucasxll/default.nix;
   };
 
@@ -368,10 +374,25 @@
   ];
 
   # ── NIX ──────────────────────────────────────────────────────
+  # Caches declarados em nix.settings (não em nixConfig no flake):
+  # nixConfig só é respeitado com --accept-flake-config; nix.settings
+  # sempre se aplica ao nixos-rebuild, evitando compilação local do niri.
   nix.settings = {
     experimental-features = [ "nix-command" "flakes" ];
     auto-optimise-store   = true;
     trusted-users         = [ "root" "lucasxll" ];
+    substituters = [
+      "https://cache.nixos.org"
+      "https://noctalia.cachix.org"
+      "https://pi.cachix.org"
+      "https://niri.cachix.org"
+    ];
+    trusted-public-keys = [
+      "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+      "noctalia.cachix.org-1:pCOR47nnMEo5thcxNDtzWpOxNFQsBRglJzxWPp3dkU4="
+      "pi.cachix.org-1:lGeoGJaZ5ZDabuRzkcD5EBTNnDM4HJ1vqeOxlWk1Flk="
+      "niri.cachix.org-1:Wv0OmO7PsuocRKzfry9N+KvbD843ZCEMiypnAjAK0Oo="
+    ];
   };
   nix.gc = {
     automatic = true;
