@@ -1,16 +1,17 @@
 # modules/nixos/software/niri.nix
 # Niri via niri-flake + xwayland-satellite.
 #
-# NOTA: o postInstall do niri 25.08 executa '$out/bin/niri completions bash'
-# para gerar shell completions, mas o niri tenta inicializar como compositor
+# Fix niri 25.08: o postInstall original executa '$out/bin/niri completions bash'
+# para gerar shell completions. O niri tenta inicializar como compositor
 # (seat/libinput) e crasha no sandbox do Nix com exit 2.
-# Fix: overrideAttrs em pkgs.niri (injetado via overlay do niri-flake)
-# removendo a geração de completions do postInstall.
+# Solução: overrideAttrs removendo as completions e o output 'doc' (man pages)
+# — funcionalidade não-essencial; tudo mais (session, portal, systemd) preservado.
 { pkgs, ... }:
 {
   programs.niri = {
     enable  = true;
     package = pkgs.niri.overrideAttrs (_: {
+      outputs = [ "out" ];
       postInstall = ''
         install -Dm0755 resources/niri-session -t $out/bin
         install -Dm0644 resources/niri.desktop -t $out/share/wayland-sessions
