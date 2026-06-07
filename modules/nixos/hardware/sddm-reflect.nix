@@ -2,7 +2,9 @@
 # SDDM Qt6 com sddm-astronaut-theme.
 #
 # kdePackages.qtmultimedia em extraPackages é obrigatório (bug nixpkgs #390251).
-# wayland.enable = false — kwin não está instalado; greeter roda em X11.
+# wayland.enable = true (padrão) — o SDDM Qt6 usa compositor interno próprio,
+# não precisa do kwin. Necessário para o autologin conseguir iniciar sessões
+# Wayland (como niri) corretamente.
 #
 # Testar sem reiniciar:
 #   sudo -u sddm sddm-greeter-qt6 --test-mode \
@@ -33,7 +35,6 @@ in
       sddm-astronaut
       pkgs.kdePackages.qtmultimedia
     ];
-    wayland.enable = false;
     settings = {
       General.RememberLastUser    = false;
       General.RememberLastSession = false;

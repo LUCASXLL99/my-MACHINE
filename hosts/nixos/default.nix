@@ -106,10 +106,8 @@
     windowManager.bspwm.enable = true;
   };
 
-  # Dupla declaração intencional: SDDM Qt6 com tema ignora o autoLogin do
-  # displayManager e só obedece o Autologin.* em sddm-reflect.nix.
-  services.displayManager.autoLogin = { enable = true; user = "lucasxll"; };
-  services.displayManager.defaultSession = "niri";
+  # O autologin é configurado exclusivamente via Autologin.* em sddm-reflect.nix,
+  # que funciona corretamente com SDDM Qt6 + tema customizado.
 
   # ── ÁUDIO ────────────────────────────────────────────────────
   security.rtkit.enable = true;
