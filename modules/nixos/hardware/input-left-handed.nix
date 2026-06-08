@@ -66,9 +66,20 @@
       INV_Y = "y" in mode
       print(f"[mouse-invert] modo={mode} inv_x={INV_X} inv_y={INV_Y}", flush=True)
 
+      # Rastreia quais paths já têm thread ativa para não duplicar.
+      active = {}
+      active_lock = threading.Lock()
 
-      def process(src):
+
+      def process(path):
           try:
+              src = evdev.InputDevice(path)
+              caps = src.capabilities()
+              rel = caps.get(ecodes.EV_REL, [])
+              if ecodes.REL_X not in rel or ecodes.REL_Y not in rel:
+                  return
+              if "[inv]" in src.name:
+                  return
               dst = UInput.from_device(src, name=src.name + " [inv]")
               src.grab()
               print(f"[mouse-invert] grabbing: {src.name} ({src.path})", flush=True)
@@ -85,36 +96,42 @@
                   if ev.type == ecodes.EV_SYN:
                       dst.syn()
           except Exception as e:
-              print(f"[mouse-invert] erro: {e}", file=sys.stderr, flush=True)
+              print(f"[mouse-invert] {path} desconectado: {e}", file=sys.stderr, flush=True)
           finally:
+              with active_lock:
+                  active.pop(path, None)
               try:
                   src.ungrab()
               except Exception:
                   pass
 
 
-      def find_mice():
-          found = []
-          for path in evdev.list_devices():
+      def watch_loop():
+          """Verifica periodicamente se há novos mice e inicia threads para eles."""
+          while True:
               try:
-                  d = evdev.InputDevice(path)
-                  caps = d.capabilities()
-                  rel = caps.get(ecodes.EV_REL, [])
-                  if ecodes.REL_X in rel and ecodes.REL_Y in rel:
-                      if "[inv]" not in d.name:
-                          found.append(d)
-              except Exception:
-                  pass
-          return found
+                  for path in evdev.list_devices():
+                      with active_lock:
+                          if path in active:
+                              continue
+                      try:
+                          d = evdev.InputDevice(path)
+                          caps = d.capabilities()
+                          rel = caps.get(ecodes.EV_REL, [])
+                          if ecodes.REL_X in rel and ecodes.REL_Y in rel and "[inv]" not in d.name:
+                              d.close()
+                              with active_lock:
+                                  t = threading.Thread(target=process, args=(path,), daemon=True)
+                                  active[path] = t
+                              t.start()
+                      except Exception:
+                          pass
+              except Exception as e:
+                  print(f"[mouse-invert] watch erro: {e}", file=sys.stderr, flush=True)
+              time.sleep(2)
 
 
-      mice = find_mice()
-      if not mice:
-          print("[mouse-invert] nenhum mouse encontrado", file=sys.stderr)
-          sys.exit(1)
-
-      for m in mice:
-          threading.Thread(target=process, args=(m,), daemon=True).start()
+      threading.Thread(target=watch_loop, daemon=True).start()
 
       try:
           while True:
