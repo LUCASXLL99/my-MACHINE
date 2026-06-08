@@ -82,7 +82,8 @@
                   return
               dst = UInput.from_device(src, name=src.name + " [inv]")
               src.grab()
-              print(f"[mouse-invert] grabbing: {src.name} ({src.path})", flush=True)
+              gname = f"{src.name} ({src.path})"
+              print(f"[mouse-invert] grabbing: {gname}", flush=True)
               for ev in src.read_loop():
                   if ev.type == ecodes.EV_REL:
                       if ev.code == ecodes.REL_X and INV_X:
@@ -96,7 +97,8 @@
                   if ev.type == ecodes.EV_SYN:
                       dst.syn()
           except Exception as e:
-              print(f"[mouse-invert] {path} desconectado: {e}", file=sys.stderr, flush=True)
+              msg = f"[mouse-invert] {path}: {e}"
+              print(msg, file=sys.stderr, flush=True)
           finally:
               with active_lock:
                   active.pop(path, None)
@@ -118,16 +120,20 @@
                           d = evdev.InputDevice(path)
                           caps = d.capabilities()
                           rel = caps.get(ecodes.EV_REL, [])
-                          if ecodes.REL_X in rel and ecodes.REL_Y in rel and "[inv]" not in d.name:
+                          has_xy = ecodes.REL_X in rel and ecodes.REL_Y in rel
+                          if has_xy and "[inv]" not in d.name:
                               d.close()
                               with active_lock:
-                                  t = threading.Thread(target=process, args=(path,), daemon=True)
+                                  t = threading.Thread(
+                                      target=process,
+                                      args=(path,), daemon=True)
                                   active[path] = t
                               t.start()
                       except Exception:
                           pass
               except Exception as e:
-                  print(f"[mouse-invert] watch erro: {e}", file=sys.stderr, flush=True)
+                  wmsg = f"[mouse-invert] watch: {e}"
+                  print(wmsg, file=sys.stderr, flush=True)
               time.sleep(2)
 
 
