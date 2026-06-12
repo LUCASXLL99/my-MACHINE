@@ -6,7 +6,6 @@
   # Pacotes exclusivos da sessão X11 (só são iniciados se fizer login no bspwm)
   home.packages = with pkgs; [
     networkmanagerapplet
-    blueman
     copyq
     feh
     mpvpaper

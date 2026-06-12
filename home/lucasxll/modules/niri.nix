@@ -142,6 +142,7 @@
     spawn-at-startup "sh" "-c" "sleep 2 && noctalia-shell"
     // cliphist iniciado via systemd (clipboard.nix) — sem spawn aqui
     spawn-at-startup "sh" "-c" "sleep 5 && nm-applet --indicator"
+    spawn-at-startup "sh" "-c" "sleep 5 && systemctl --user start niri-blueman-applet"
     // wallpaper → gerenciado por systemd (home/lucasxll/modules/wallpaper.nix)
     //             systemctl --user status mpvpaper
 
@@ -162,6 +163,7 @@
         // Mod+A aguarda o socket X1 estar disponível antes de lançar o Studio
         // (evita race condition se xwayland-satellite ainda estiver subindo).
         Mod+E { spawn "dolphin"; }
+        Mod+B { spawn "blueman-manager"; }     // gerenciador Bluetooth
         Mod+A { spawn "sh" "-c" "for i in $(seq 1 20); do [ -S /tmp/.X11-unix/X1 ] && break; sleep 0.5; done; android-studio"; }
 
         // Clipboard
@@ -397,6 +399,26 @@
       '';
     };
     Install.WantedBy = [ "niri.service" ];
+  };
+
+  # ════════════════════════════════════════════════════════════════
+  # BLUETOOTH — applet de tray para niri
+  # ════════════════════════════════════════════════════════════════
+  # Iniciado via spawn-at-startup (não via WantedBy) — só ativo no niri.
+  # Para abrir o manager: Mod+B  ou  blueman-manager no terminal.
+  systemd.user.services.niri-blueman-applet = {
+    Unit = {
+      Description = "Blueman applet — Bluetooth tray (niri)";
+      After       = [ "graphical-session.target" ];
+      PartOf      = [ "graphical-session.target" ];
+    };
+    Service = {
+      ExecStart  = "${pkgs.blueman}/bin/blueman-applet";
+      Restart    = "on-failure";
+      RestartSec = "3s";
+    };
+    # Sem WantedBy: iniciado pelo spawn-at-startup do niri config.
+    # bspwm usa seu próprio serviço bspwm-blueman.
   };
 
   # ════════════════════════════════════════════════════════════════

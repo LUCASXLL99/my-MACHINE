@@ -46,7 +46,7 @@
     grim slurp swappy
     wl-clipboard cliphist
     wl-mirror wlr-randr
-    playerctl pavucontrol
+    playerctl pavucontrol blueman
     xdg-utils libnotify
     wezterm
 
