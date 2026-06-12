@@ -43,9 +43,14 @@ in
 
       Autologin.User    = "lucasxll";
       Autologin.Session = "niri";
-      # true: retenta autologin se niri crashar no boot (ex: race condition).
-      # Se entrar em loop: Ctrl+Alt+F2 → TTY → nixos-rebuild switch para corrigir.
-      Autologin.Relogin = true;
+      # IMPORTANTE: Relogin = false.
+      # Com true, qualquer encerramento da sessão niri (crash, exit rápido,
+      # race condition na inicialização) faz o SDDM relançar autologin
+      # imediatamente — produz o efeito visual de "sudo systemctl restart
+      # display-manager": tela preta + flash de SDDM + niri subindo de novo.
+      # Com false, se a sessão encerrar inesperadamente o SDDM mostra a tela
+      # de login normalmente em vez de entrar em loop.
+      Autologin.Relogin = false;
     };
   };
 }

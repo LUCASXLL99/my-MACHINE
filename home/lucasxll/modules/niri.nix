@@ -136,7 +136,13 @@
     // swayidle → REMOVIDO: noctalia gerencia idle/suspend via D-Bus loginctl
     //            (swayidle chamava systemctl suspend diretamente, bypassava
     //             inibidores do logind → tela vermelha/congelada após resume)
-    spawn-at-startup "sh" "-c" "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP NIRI_SOCKET"
+    // Exporta variáveis de ambiente para o bus D-Bus e systemd --user.
+    // Isso é crítico: sem WAYLAND_DISPLAY no bus, serviços como noctalia,
+    // xwayland-satellite e mpvpaper não encontram o compositor e falham.
+    //
+    // O sleep 1 garante que o niri terminou sua própria inicialização antes
+    // de exportar — evita race condition onde o socket ainda não está pronto.
+    spawn-at-startup "sh" "-c" "sleep 1 && dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP NIRI_SOCKET DISPLAY"
     spawn-at-startup "sh" "-c" "pkill mpris-proxy; mpris-proxy"
     spawn-at-startup "sh" "-c" "sleep 2 && systemctl --user restart mouse-invert-y"
     spawn-at-startup "sh" "-c" "sleep 2 && noctalia-shell"

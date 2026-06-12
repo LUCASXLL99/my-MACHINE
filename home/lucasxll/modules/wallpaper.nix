@@ -37,9 +37,14 @@ in
     };
     Service = {
       ExecStart             = "${launchScript}";
-      Restart               = "always";
-      RestartSec            = "2s";
-      StartLimitIntervalSec = "0";
+      # "on-failure" em vez de "always": evita loop infinito se o arquivo
+      # de wallpaper não existir ou o mpvpaper falhar repetidamente.
+      # "always" pode causar restart storm que compete com o niri por recursos
+      # e em casos extremos derruba a graphical-session.target.
+      Restart               = "on-failure";
+      RestartSec            = "5s";
+      StartLimitIntervalSec = "60";
+      StartLimitBurst       = "3";
     };
     Install.WantedBy = [ "graphical-session.target" ];
   };

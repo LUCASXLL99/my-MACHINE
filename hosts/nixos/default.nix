@@ -71,11 +71,20 @@
   services.pulseaudio.enable   = false;
 
   # ── DISPLAY (X11 para bspwm) ─────────────────────────────────
+  # services.xserver.enable = true é necessário para manter a sessão bspwm (X11)
+  # disponível no SDDM. O layout de teclado é definido aqui para o X11; o niri
+  # usa seu próprio xkb via config.kdl.
+  #
+  # NOTA: displayManager.lightdm.enable = false garante que o xserver NÃO
+  # registre um display-manager secundário. O SDDM (sddm-reflect.nix) é o
+  # único display-manager. Sem isso, em algumas versões do NixOS o xserver
+  # pode registrar o lightdm como fallback e causar conflito no boot.
   services.xserver = {
     enable      = true;
     xkb.layout  = "br";
     xkb.variant = "nodeadkeys";
     windowManager.bspwm.enable = true;
+    displayManager.lightdm.enable = false;
   };
 
   # ── ÁUDIO ────────────────────────────────────────────────────
