@@ -1,24 +1,44 @@
 # home/lucasxll/modules/clipboard.nix
 #
-# CopyQ — histórico compartilhado entre sessões.
-#   X11/bspwm  → nativo; atalho super+v em sxhkdrc
-#   Wayland/niri → via xwayland-satellite (:1); Mod+V abre painel noctalia
+# cliphist — histórico de clipboard nativo Wayland.
+#   niri   → cliphist + fuzzel (Wayland-nativo); atalho Mod+V em niri.nix
+#   bspwm  → CopyQ (instalado em bspwm.nix, super+v em sxhkdrc)
 #
-# Histórico em ~/.local/share/copyq.
+# Histórico persistido em ~/.cache/cliphist/db.
+# Para limpar: cliphist wipe
 
 { pkgs, ... }:
 
 {
-  home.packages = [ pkgs.copyq ];
+  home.packages = [ pkgs.cliphist pkgs.fuzzel ];
 
-  xdg.configFile."copyq/copyq.conf".text = ''
-    [General]
-    maxitems=100
-    saveImagesOnClose=false
-    viMode=false
-    closeOnUnfocus=true
+  # Daemon: assiste wl-paste e alimenta o banco do cliphist
+  systemd.user.services.cliphist = {
+    Unit = {
+      Description  = "Clipboard history daemon (Wayland)";
+      After        = [ "graphical-session.target" ];
+      PartOf       = [ "graphical-session.target" ];
+    };
+    Service = {
+      ExecStart    = "${pkgs.wl-clipboard}/bin/wl-paste --type text --watch ${pkgs.cliphist}/bin/cliphist store";
+      Restart      = "on-failure";
+      RestartSec   = "2s";
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
+  };
 
-    [Shortcuts]
-    activate_closes=true
-  '';
+  # Também captura imagens (opcional — comentar se não quiser)
+  systemd.user.services.cliphist-img = {
+    Unit = {
+      Description  = "Clipboard image history daemon (Wayland)";
+      After        = [ "graphical-session.target" ];
+      PartOf       = [ "graphical-session.target" ];
+    };
+    Service = {
+      ExecStart    = "${pkgs.wl-clipboard}/bin/wl-paste --type image --watch ${pkgs.cliphist}/bin/cliphist store";
+      Restart      = "on-failure";
+      RestartSec   = "2s";
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
+  };
 }

@@ -39,8 +39,8 @@
       "audio/aac"  = [ "mpv.desktop" ];
 
       "application/pdf"  = [ "firefox.desktop" ];                # ✅
-      "text/plain"       = [ "firefox.desktop" ];
-      "application/json" = [ "firefox.desktop" ];
+      "text/plain"       = [ "nvim.desktop" ];         # editor, não browser
+      "application/json" = [ "nvim.desktop" ];
 
       "application/zip"              = [ "org.kde.ark.desktop" ]; # 🔶
       "application/x-tar"            = [ "org.kde.ark.desktop" ];

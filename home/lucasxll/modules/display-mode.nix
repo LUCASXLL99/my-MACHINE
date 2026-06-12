@@ -1,5 +1,9 @@
 # home/lucasxll/modules/display-mode.nix
 # f-mirror / f-reset — alterna perfil espelhado↔normal.
+#
+# Usa xrandr (X11) para espelhar o display — funciona na sessão bspwm e
+# também em niri via xwayland-satellite (xrandr afeta apenas o display virtual).
+# Para espelhar o output Wayland no niri, usar wlr-randr ou niri msg output.
 
 { config, pkgs, lib, ... }:
 
@@ -8,8 +12,6 @@ let
 
   xrandr = "${pkgs.xorg.xrandr}/bin/xrandr";
   awk    = "${pkgs.gawk}/bin/awk";
-  kwrite = "${pkgs.libsForQt5.kconfig}/bin/kwriteconfig5";
-  qdbus  = "${pkgs.qt5.qttools.bin}/bin/qdbus";
 
   xrandrApply = reflect: ''
     for _o in $(${xrandr} | ${awk} '/ connected/{print $1}'); do
@@ -17,25 +19,8 @@ let
     done
   '';
 
-  kwinApply = left: right: ''
-    ${kwrite} --file kwinrc \
-      --group org.kde.kdecoration2 \
-      --key ButtonsOnLeft  "${left}"
-    ${kwrite} --file kwinrc \
-      --group org.kde.kdecoration2 \
-      --key ButtonsOnRight "${right}"
-    ${qdbus} org.kde.KWin /KWin reconfigure 2>/dev/null || true
-  '';
-
-  applyMirror = ''
-    ${xrandrApply "x"}
-    ${kwinApply "XIA" ""}
-  '';
-
-  applyNormal = ''
-    ${xrandrApply "normal"}
-    ${kwinApply "" "IAX"}
-  '';
+  applyMirror = xrandrApply "x";
+  applyNormal = xrandrApply "normal";
 
   startupScript = pkgs.writeShellScript "display-mode-startup" ''
     sleep 2
@@ -58,7 +43,7 @@ in
       mkdir -p "$(dirname "${stateFile}")"
       echo "mirror" > "${stateFile}"
       ${applyMirror}
-      echo "✓ Modo espelho ativo (RTL terá efeito nos apps abertos após o próximo login)"
+      echo "✓ Modo espelho ativo"
     '')
     (pkgs.writeShellScriptBin "f-reset" ''
       mkdir -p "$(dirname "${stateFile}")"
@@ -68,11 +53,8 @@ in
     '')
   ];
 
-  # GTK_TEXT_DIR e QT_LAYOUT_DIRECTION são exportados via .xprofile.
-  # xrandr/kwriteconfig5 NÃO ficam aqui — precisam do servidor X já rodando.
   home.file.".xprofile".text = ''
     # display-mode — gerado pelo Home Manager, não editar manualmente
-
     _DM_STATE_FILE="${stateFile}"
     _DM_MODE=$(cat "$_DM_STATE_FILE" 2>/dev/null || echo "normal")
 
@@ -92,7 +74,6 @@ in
     unset _DM_STATE_FILE _DM_MODE
   '';
 
-  # Garante as variáveis mesmo quando o DM não sourcia .xprofile
   xsession.profileExtra = ''
     if [ -f "${stateFile}" ]; then
       _DM_MODE=$(cat "${stateFile}")
@@ -126,7 +107,6 @@ in
     Type=Application
     Name=Display Mode
     Exec=${startupScript}
-    X-KDE-autostart-phase=1
     Hidden=false
     X-GNOME-Autostart-enabled=true
   '';

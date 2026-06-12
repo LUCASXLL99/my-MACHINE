@@ -140,7 +140,7 @@
     spawn-at-startup "sh" "-c" "pkill mpris-proxy; mpris-proxy"
     spawn-at-startup "sh" "-c" "sleep 2 && systemctl --user restart mouse-invert-y"
     spawn-at-startup "sh" "-c" "sleep 2 && noctalia-shell"
-    spawn-at-startup "sh" "-c" "sleep 3 && DISPLAY=:0 copyq --start-server"
+    // cliphist iniciado via systemd (clipboard.nix) — sem spawn aqui
     spawn-at-startup "sh" "-c" "sleep 5 && nm-applet --indicator"
     // wallpaper → gerenciado por systemd (home/lucasxll/modules/wallpaper.nix)
     //             systemctl --user status mpvpaper
@@ -165,7 +165,7 @@
         Mod+A { spawn "sh" "-c" "for i in $(seq 1 20); do [ -S /tmp/.X11-unix/X1 ] && break; sleep 0.5; done; android-studio"; }
 
         // Clipboard
-        Mod+V { spawn "sh" "-c" "DISPLAY=:0 copyq toggle"; }
+        Mod+V { spawn "sh" "-c" "cliphist list | fuzzel --dmenu | cliphist decode | wl-copy"; }
 
         // Screenshot
         // Print/Shift+Print → nativo do niri (sem slurp, sem overlay, sem trava)

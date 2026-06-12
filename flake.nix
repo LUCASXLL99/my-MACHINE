@@ -1,19 +1,6 @@
 {
   description = "lucasxll nixos config";
 
-  nixConfig = {
-    extra-substituters = [
-      "https://noctalia.cachix.org"
-      "https://pi.cachix.org"
-      "https://niri.cachix.org"
-    ];
-    extra-trusted-public-keys = [
-      "noctalia.cachix.org-1:pCOR47nnMEo5thcxNDtzWpOxNFQsBRglJzxWPp3dkU4="
-      "pi.cachix.org-1:lGeoGJaZ5ZDabuRzkcD5EBTNnDM4HJ1vqeOxlWk1Flk="
-      "niri.cachix.org-1:Wv0OmO7PsuocRKzfry9N+KvbD843ZCEMiypnAjAK0Oo="
-    ];
-  };
-
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
 
@@ -67,10 +54,7 @@
                 prev.makeModulesClosure (x // { allowMissing = true; });
             })
             opencode-nix.overlays.default
-            (_: _: {
-              pi-coding-agent =
-                (import inputs.nixpkgs-unstable { inherit system; config.allowUnfree = true; }).pi-coding-agent;
-            })
+            (_: _: { pi-coding-agent = pkgs-unstable.pi-coding-agent; })
           ];
         }
         niri.nixosModules.niri
