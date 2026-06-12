@@ -33,18 +33,19 @@ in
     theme   = "sddm-astronaut-theme";
     extraPackages = [
       sddm-astronaut
-      pkgs.kdePackages.qtmultimedia
+      pkgs.kdePackages.qtmultimedia   # obrigatório: bug nixpkgs #390251
+      pkgs.kdePackages.qtwayland       # plugin Wayland para o greeter Qt6
     ];
     settings = {
       General.RememberLastUser    = false;
       General.RememberLastSession = false;
       Users.RememberLastUser      = false;
 
-      # SDDM Qt6 com tema customizado ignora services.displayManager.autoLogin.
-      # Relogin = false evita loop se a sessão travar no boot.
       Autologin.User    = "lucasxll";
       Autologin.Session = "niri";
-      Autologin.Relogin = false;
+      # true: retenta autologin se niri crashar no boot (ex: race condition).
+      # Se entrar em loop: Ctrl+Alt+F2 → TTY → nixos-rebuild switch para corrigir.
+      Autologin.Relogin = true;
     };
   };
 }

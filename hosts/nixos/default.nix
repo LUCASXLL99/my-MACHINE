@@ -116,7 +116,12 @@
   # ── PORTAL XDG ───────────────────────────────────────────────
   xdg.portal = {
     enable = true;
-    extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
+    # gtk: FileChooser e Settings (todas as sessões)
+    # wlr: ScreenCast e RemoteDesktop (niri e outros compositores wlroots)
+    extraPortals = [
+      pkgs.xdg-desktop-portal-gtk
+      pkgs.xdg-desktop-portal-wlr
+    ];
     config = {
       common = { default = [ "gtk" ]; };
       niri = {

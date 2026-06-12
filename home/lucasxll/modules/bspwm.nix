@@ -47,6 +47,9 @@
     startupPrograms = [
       "bspc monitor -d 1 2 3 4 5 6 7 8 9"
 
+      # Inicia os daemons via systemd (restart automático se caírem)
+      "systemctl --user start bspwm-sxhkd bspwm-picom bspwm-dunst bspwm-copyq bspwm-mpris-proxy bspwm-nm-applet bspwm-blueman"
+
       # Aplica matriz de espelho em todos os dispositivos de input (X11)
       "sleep 2; for id in $(${pkgs.xorg.xinput}/bin/xinput list --id-only 2>/dev/null); do ${pkgs.xorg.xinput}/bin/xinput set-prop \"$id\" 'Coordinate Transformation Matrix' -1 0 1 0 -1 1 0 0 1 2>/dev/null || true; done"
 
@@ -60,12 +63,15 @@
 
   # ── Serviços systemd para daemons do bspwm ──────────────────────────────────
   # Condicionados a DESKTOP_SESSION=bspwm: não interferem na sessão niri.
+  # Os serviços bspwm-* NÃO têm WantedBy: não iniciam automaticamente.
+  # São iniciados explicitamente pelo startupPrograms do bspwm abaixo,
+  # e reiniciados automaticamente pelo systemd se caírem (Restart=on-failure).
   systemd.user.services = let
     bspwmOnly = {
       Unit.After       = [ "graphical-session.target" ];
       Unit.PartOf      = [ "graphical-session.target" ];
-      Unit.ConditionEnvironment = "DESKTOP_SESSION=bspwm";
-      Install.WantedBy = [ "graphical-session.target" ];
+      # Sem WantedBy: evita iniciar em niri ou outras sessões.
+      # O bspwm chama 'systemctl --user start bspwm-*' via startupPrograms.
     };
   in {
     bspwm-sxhkd = lib.recursiveUpdate bspwmOnly {

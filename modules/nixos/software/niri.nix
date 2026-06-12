@@ -31,9 +31,11 @@ in
   # O niri-flake pode registrar pkgs.niri (sem override) em sessionPackages;
   # mkAfter adiciona o niriPkg correto no final — o buildEnv com
   # ignoreCollisions irá usar o niri.desktop deste pacote.
-  services.displayManager.sessionPackages = lib.mkAfter [ niriPkg ];
+  # mkBefore: niriPkg fica primeiro na lista do buildEnv — ganha colisões
+  # sobre qualquer pkgs.niri que o niri-flake possa adicionar.
+  services.displayManager.sessionPackages = lib.mkBefore [ niriPkg ];
 
   environment.systemPackages                   = [ pkgs.xwayland-satellite ];
   environment.sessionVariables.NIXOS_OZONE_WL = "1";
-  xdg.portal.extraPortals                      = [ pkgs.xdg-desktop-portal-wlr ];
+  # Portais XDG declarados em default.nix (xdg.portal block) para manter tudo junto.
 }
