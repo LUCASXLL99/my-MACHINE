@@ -10,9 +10,9 @@ let
 
   launchScript = pkgs.writeShellScript "mpvpaper-launch" ''
     if [ -z "$WAYLAND_DISPLAY" ]; then
-      XDG_RUNTIME_DIR="${''}${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+      _RTD="''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
       for _i in $(seq 1 30); do
-        for _f in "$XDG_RUNTIME_DIR"/wayland-?; do
+        for _f in "$_RTD"/wayland-?; do
           [ -S "$_f" ] || continue
           export WAYLAND_DISPLAY="$(basename "$_f")"
           break 2
