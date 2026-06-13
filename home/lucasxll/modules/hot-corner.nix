@@ -2,8 +2,8 @@
 #
 # Detecta o canto superior direito e chama 'niri msg action toggle-overview'.
 #
-# Usa polling da posição absoluta do cursor via 'niri msg cursor-position'
-# (IPC nativo do niri), evitando dessincronia por acúmulo de deltas relativos.
+# Usa polling da posição absoluta do cursor via 'xdotool getmouselocation'
+# (Xwayland/X11), já que o niri não expõe cursor-position via IPC.
 
 { pkgs, ... }:
 
@@ -47,16 +47,17 @@ def get_screen_dims():
     return 1920, 1080
 
 def get_cursor_pos():
-    """Lê posição absoluta do cursor via niri IPC (lógica, após scale)."""
+    """Lê posição absoluta do cursor via xdotool (Xwayland)."""
     try:
-        r = niri_cmd("-j", "cursor-position")
+        env = {**os.environ, "DISPLAY": os.environ.get("DISPLAY", ":1")}
+        r = subprocess.run(
+            ["xdotool", "getmouselocation", "--shell"],
+            capture_output=True, text=True, timeout=3, env=env
+        )
         if r.returncode != 0:
             return None
-        data = json.loads(r.stdout)
-        # retorna {"x": float, "y": float} ou null se cursor fora de output
-        if data is None:
-            return None
-        return float(data["x"]), float(data["y"])
+        vals = dict(line.split("=", 1) for line in r.stdout.splitlines() if "=" in line)
+        return float(vals["X"]), float(vals["Y"])
     except Exception:
         return None
 

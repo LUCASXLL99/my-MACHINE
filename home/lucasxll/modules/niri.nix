@@ -146,7 +146,7 @@
     spawn-at-startup "sh" "-c" "pkill mpris-proxy; mpris-proxy"
     spawn-at-startup "sh" "-c" "sleep 2 && systemctl --user restart mouse-invert-y"
     spawn-at-startup "sh" "-c" "sleep 2 && noctalia-shell"
-    // cliphist iniciado via systemd (clipboard.nix) — sem spawn aqui
+    // copyq iniciado via systemd (clipboard.nix) — sem spawn aqui
     spawn-at-startup "sh" "-c" "sleep 5 && nm-applet --indicator"
     spawn-at-startup "sh" "-c" "sleep 5 && systemctl --user start niri-blueman-applet"
     // wallpaper → gerenciado por systemd (home/lucasxll/modules/wallpaper.nix)
@@ -173,7 +173,7 @@
         Mod+A { spawn "sh" "-c" "for i in $(seq 1 20); do [ -S /tmp/.X11-unix/X1 ] && break; sleep 0.5; done; android-studio"; }
 
         // Clipboard
-        Mod+V { spawn "sh" "-c" "cliphist list | fuzzel --dmenu | cliphist decode | wl-copy"; }
+        Mod+V { spawn "copyq" "show"; }
 
         // Screenshot
         // Print/Shift+Print → nativo do niri (sem slurp, sem overlay, sem trava)

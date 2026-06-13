@@ -6,7 +6,6 @@
   # Pacotes exclusivos da sessão X11 (só são iniciados se fizer login no bspwm)
   home.packages = with pkgs; [
     networkmanagerapplet
-    copyq
     feh
     mpvpaper
     flameshot
@@ -47,7 +46,7 @@
       "bspc monitor -d 1 2 3 4 5 6 7 8 9"
 
       # Inicia os daemons via systemd (restart automático se caírem)
-      "systemctl --user start bspwm-sxhkd bspwm-picom bspwm-dunst bspwm-copyq bspwm-mpris-proxy bspwm-nm-applet bspwm-blueman"
+      "systemctl --user start bspwm-sxhkd bspwm-picom bspwm-dunst bspwm-mpris-proxy bspwm-nm-applet bspwm-blueman"
 
       # Aplica matriz de espelho em todos os dispositivos de input (X11)
       "sleep 2; for id in $(${pkgs.xorg.xinput}/bin/xinput list --id-only 2>/dev/null); do ${pkgs.xorg.xinput}/bin/xinput set-prop \"$id\" 'Coordinate Transformation Matrix' -1 0 1 0 -1 1 0 0 1 2>/dev/null || true; done"
@@ -91,11 +90,6 @@
       Unit.Description = "dunst notification daemon (bspwm)";
       Service.ExecStart = "${pkgs.dunst}/bin/dunst";
       Service.Restart   = "on-failure";
-    };
-    bspwm-copyq = lib.recursiveUpdate bspwmOnly {
-      Unit.Description = "CopyQ clipboard manager (bspwm)";
-      Service.ExecStart = "${pkgs.copyq}/bin/copyq";
-      Service.Restart   = "on-failure"; Service.RestartSec = "1s";
     };
     bspwm-mpris-proxy = lib.recursiveUpdate bspwmOnly {
       Unit.Description = "mpris-proxy — media key bridge (bspwm)";
