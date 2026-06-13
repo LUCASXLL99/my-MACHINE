@@ -2,24 +2,27 @@
 #
 # Detecta o canto superior direito e chama 'niri msg action toggle-overview'.
 #
-# niri não expõe cursor via IPC nem via event-stream — usa polling com
-# xdotool (Xwayland). A resolução é lida via niri IPC onde current_mode
-# é um índice inteiro na lista modes[].
+# Lê eventos REL_X/REL_Y diretamente dos dispositivos /dev/input (via evdev),
+# acumula posição absoluta e detecta o canto. Necessário porque:
+#   - niri não expõe cursor via IPC nem event-stream
+#   - xdotool retorna posição fixa no Xwayland do niri
+#   - kanata remapeia os devices para [inv] (py-evdev-uinput)
 
 { pkgs, ... }:
 
 let
-  python = pkgs.python3;
+  python = pkgs.python3.withPackages (ps: [ ps.evdev ]);
 
   script = pkgs.writeShellScriptBin "niri-hot-corner-right" ''
     exec ${python}/bin/python3 - << 'PYEOF'
-import sys, time, subprocess, os, glob, json
+import asyncio, subprocess, os, glob, json, time
+import evdev
+from evdev import InputDevice, categorize, ecodes
 
 THRESHOLD = int(os.environ.get("HOT_CORNER_THRESHOLD", "8"))
 COOLDOWN  = float(os.environ.get("HOT_CORNER_COOLDOWN", "1.5"))
-POLL_HZ   = float(os.environ.get("HOT_CORNER_POLL_HZ", "60"))
 
-# ── helpers ───────────────────────────────────────────────────────────────────
+# ── niri helpers ──────────────────────────────────────────────────────────────
 
 def niri_socket():
     s = os.environ.get("NIRI_SOCKET", "")
@@ -29,8 +32,8 @@ def niri_socket():
     return hits[0] if hits else None
 
 def niri_env():
+    env = {**os.environ}
     sock = niri_socket()
-    env  = {**os.environ}
     if sock:
         env["NIRI_SOCKET"] = sock
     return env
@@ -40,14 +43,12 @@ def niri_cmd(*args):
                           timeout=3, env=niri_env())
 
 def get_screen_dims():
-    """Detecta resolução lógica do output primário via niri IPC.
-    current_mode é um índice inteiro em modes[], não um dict."""
     try:
         r = niri_cmd("-j", "outputs")
         for out in json.loads(r.stdout).values():
             idx   = out.get("current_mode")
             modes = out.get("modes", [])
-            if idx is None or not modes:
+            if not modes:
                 continue
             m     = modes[idx] if isinstance(idx, int) else modes[0]
             scale = out.get("scale") or 1.0
@@ -56,44 +57,61 @@ def get_screen_dims():
         print(f"[hot-corner] fallback 1920×1080 ({e})", flush=True)
     return 1920, 1080
 
-def get_cursor_pos():
-    """Polling via xdotool (Xwayland). Coordenadas físicas — dividimos pela
-    escala do output para obter coordenadas lógicas comparáveis ao W/H."""
-    try:
-        env = {**os.environ, "DISPLAY": os.environ.get("DISPLAY", ":0")}
-        r = subprocess.run(
-            ["xdotool", "getmouselocation", "--shell"],
-            capture_output=True, text=True, timeout=1, env=env
-        )
-        if r.returncode != 0:
-            return None
-        vals = dict(line.split("=", 1) for line in r.stdout.splitlines() if "=" in line)
-        return float(vals["X"]), float(vals["Y"])
-    except Exception:
-        return None
-
 def trigger():
     niri_cmd("action", "toggle-overview")
+
+# ── device discovery ──────────────────────────────────────────────────────────
+
+def find_mouse_devices():
+    """Acha todos os /dev/input/eventN que têm REL_X e REL_Y (mouses)."""
+    devices = []
+    for path in sorted(glob.glob("/dev/input/event*")):
+        try:
+            dev = InputDevice(path)
+            caps = dev.capabilities()
+            if ecodes.EV_REL in caps:
+                rel = caps[ecodes.EV_REL]
+                if ecodes.REL_X in rel and ecodes.REL_Y in rel:
+                    devices.append(dev)
+                    print(f"[hot-corner] monitorando: {dev.name} ({path})", flush=True)
+        except Exception:
+            pass
+    return devices
 
 # ── main ──────────────────────────────────────────────────────────────────────
 
 W, H = get_screen_dims()
-print(f"[hot-corner] resolução lógica: {W}×{H}, threshold: {THRESHOLD}px, poll: {POLL_HZ}Hz", flush=True)
+print(f"[hot-corner] resolução lógica: {W}×{H}, threshold: {THRESHOLD}px", flush=True)
 
+devices = find_mouse_devices()
+if not devices:
+    print("[hot-corner] nenhum dispositivo de mouse encontrado!", flush=True)
+    exit(1)
+
+# Posição acumulada — começa no centro
+cx, cy = W / 2, H / 2
 last_trigger = 0.0
-interval     = 1.0 / POLL_HZ
 
-while True:
-    pos = get_cursor_pos()
-    if pos is not None:
-        cx, cy = pos
-        if cx >= W - THRESHOLD and cy <= THRESHOLD:
-            now = time.monotonic()
-            if now - last_trigger >= COOLDOWN:
-                print(f"[hot-corner] trigger! cursor=({cx:.0f},{cy:.0f})", flush=True)
-                trigger()
-                last_trigger = now
-    time.sleep(interval)
+async def handle(dev):
+    global cx, cy, last_trigger
+    async for event in dev.async_read_loop():
+        if event.type == ecodes.EV_REL:
+            if event.code == ecodes.REL_X:
+                cx = max(0, min(W, cx + event.value))
+            elif event.code == ecodes.REL_Y:
+                cy = max(0, min(H, cy + event.value))
+
+            if cx >= W - THRESHOLD and cy <= THRESHOLD:
+                now = time.monotonic()
+                if now - last_trigger >= COOLDOWN:
+                    print(f"[hot-corner] trigger! cursor=({cx:.0f},{cy:.0f})", flush=True)
+                    trigger()
+                    last_trigger = now
+
+async def main():
+    await asyncio.gather(*[handle(dev) for dev in devices])
+
+asyncio.run(main())
 PYEOF
   '';
 in
