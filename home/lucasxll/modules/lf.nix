@@ -1,45 +1,14 @@
-# home/lucasxll/modules/lf.nix
-# lf + ferramentas CLI modernas
-
 { pkgs, ... }:
 
 {
   home.packages = with pkgs; [
-    lf
-
-    # Visualizadores (previewer do lf)
-    bat
-    ueberzugpp
-
-    # Busca
-    fd
-    ripgrep
-    fzf
-
-    # Navegação e listagem
-    zoxide
-    eza
-
-    # Monitoramento e disco
-    btop
-    dust
-    duf
-    ncdu
-
-    # Docs e dados
-    tldr
-    jq
-    yq-go
-
-    # Git
-    delta
-    lazygit
-
-    # Extras
-    tokei
-    glow
-    xh
-    trashy
+    lf bat ueberzugpp
+    fd ripgrep fzf
+    zoxide eza
+    btop dust duf ncdu
+    tldr jq yq-go
+    delta lazygit
+    tokei glow xh trashy
   ];
 
   xdg.configFile."lf/lfrc".text = ''
@@ -79,7 +48,7 @@
     map <a-a> :glob-select *
     map <a-A> :glob-unselect *
 
-    map <c-f> ''${
+    map <c-f> $${
         res="$(fd --hidden --follow --exclude .git 2>/dev/null | fzf --preview 'bat --color=always --line-range :50 {}' 2>/dev/null)"
         [ -n "$res" ] && lf -remote "send $id select \"$res\""
     }
@@ -95,7 +64,7 @@
         esac
     }}
 
-    cmd delete ''${
+    cmd delete $${
         set -f
         printf "%s\n" "$fx"
         printf "Deletar permanentemente? [s/N] "
@@ -103,14 +72,11 @@
         [ "$ans" = "s" ] && rm -rf -- $fx
     }
 
-    cmd trash ''${
-        set -f
-        trashy "$fx"
-    }
+    cmd trash ${ set -f; trashy "$fx" }
     map <delete> trash
     map D delete
 
-    cmd extract ''${
+    cmd extract $${
         set -f
         case "$f" in
             *.tar.bz2|*.tbz2) tar xjf "$f" ;;
@@ -125,7 +91,6 @@
         esac
     }
 
-    # Git status na barra de título
     cmd on-cd &{{
         git_branch=$(git branch --show-current 2>/dev/null)
         if [ -n "$git_branch" ]; then
@@ -141,45 +106,30 @@
     executable = true;
     text = ''
       #!/bin/sh
-      file=$1
-      w=$2
-      h=$3
-      mimetype=$(file --mime-type -Lb "$file")
-      case "$mimetype" in
+      file=$1; w=$2; h=$3
+      case $(file --mime-type -Lb "$file") in
           text/*|application/json|application/xml|application/javascript)
-              bat --color=always --style=numbers,changes --line-range=:200 \
-                  --theme="TwoDark" "$file" 2>/dev/null || cat "$file"
-              ;;
+              bat --color=always --style=numbers,changes --line-range=:200 --theme="TwoDark" "$file" 2>/dev/null || cat "$file" ;;
           application/pdf)
-              pdftotext -l 3 "$file" - 2>/dev/null | head -80 \
-                  || echo "[PDF — instale poppler para preview]"
-              ;;
+              pdftotext -l 3 "$file" - 2>/dev/null | head -80 || echo "[PDF — instale poppler]" ;;
           image/*)
-              chafa --format symbols --size "$w"x"$h" "$file" 2>/dev/null \
-                  || echo "[Imagem: $file]"
-              ;;
+              chafa --format symbols --size "$w"x"$h" "$file" 2>/dev/null || echo "[Imagem: $file]" ;;
           video/*)
               echo "[Vídeo]"
               ffprobe -v quiet -show_format -show_streams "$file" 2>/dev/null \
-                  | grep -E "^(filename|duration|bit_rate|codec_name|width|height)" | head -10
-              ;;
+                  | grep -E "^(filename|duration|bit_rate|codec_name|width|height)" | head -10 ;;
           audio/*)
               ffprobe -v quiet -show_format "$file" 2>/dev/null \
-                  | grep -E "^(filename|duration|bit_rate|TAG)" | head -10
-              ;;
+                  | grep -E "^(filename|duration|bit_rate|TAG)" | head -10 ;;
           application/zip|application/x-tar|application/x-7z-compressed)
               case "$file" in
-                  *.zip) unzip -l "$file" 2>/dev/null | head -40 ;;
+                  *.zip)      unzip -l "$file" 2>/dev/null | head -40 ;;
                   *.tar*|*.tgz|*.tbz2) tar tf "$file" 2>/dev/null | head -40 ;;
-                  *.7z) 7z l "$file" 2>/dev/null | head -40 ;;
-                  *) echo "$mimetype" ;;
-              esac
-              ;;
+                  *.7z)       7z l "$file" 2>/dev/null | head -40 ;;
+                  *)          echo "$mimetype" ;;
+              esac ;;
           *)
-              file --brief "$file"
-              echo ""
-              head -20 "$file" 2>/dev/null
-              ;;
+              file --brief "$file"; echo ""; head -20 "$file" 2>/dev/null ;;
       esac
     '';
   };
@@ -196,7 +146,6 @@
   programs.zsh = {
     initContent = ''
       eval "$(zoxide init zsh)"
-
       source ${pkgs.fzf}/share/fzf/completion.zsh   2>/dev/null || true
       source ${pkgs.fzf}/share/fzf/key-bindings.zsh 2>/dev/null || true
       export FZF_DEFAULT_COMMAND="fd --hidden --follow --exclude .git"
@@ -206,32 +155,21 @@
         --color=marker:#73daca,fg+:#c0caf5,prompt:#7aa2f7,hl+:#bb9af7
         --height 50% --border rounded --prompt '❯ '
       "
-
       export GIT_PAGER="delta"
     '';
-
     shellAliases = {
-      "lf"    = "lf";
-      "lfcd"  = ''cd "$(command lf -print-last-dir)"'';
-
-      "ls"  = "eza --icons --group-directories-first";
-      "ll"  = "eza -la --icons --group-directories-first --git";
-      "la"  = "eza -a --icons --group-directories-first";
-      "lt"  = "eza --tree --icons --level=2";
-      "llt" = "eza -la --tree --icons --level=2 --git";
-
-      "cat"  = "bat --style=plain";
-      "less" = "bat --style=full --paging=always";
-
-      "top"  = "btop";
-      "df"   = "duf";
-      "du"   = "dust";
-      "grep" = "rg";
-      "find" = "fd";
-      "curl" = "xh";
-
-      "lg" = "lazygit";
-      "gd" = "git diff | delta";
+      lfcd = ''cd "$(command lf -print-last-dir)"'';
+      ls   = "eza --icons --group-directories-first";
+      ll   = "eza -la --icons --group-directories-first --git";
+      la   = "eza -a --icons --group-directories-first";
+      lt   = "eza --tree --icons --level=2";
+      llt  = "eza -la --tree --icons --level=2 --git";
+      cat  = "bat --style=plain";
+      less = "bat --style=full --paging=always";
+      df   = "duf";
+      curl = "xh";
+      lg   = "lazygit";
+      gd   = "git diff | delta";
     };
   };
 }

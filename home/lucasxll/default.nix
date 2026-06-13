@@ -1,5 +1,3 @@
-# home/lucasxll/default.nix
-
 { config, pkgs, inputs, ... }:
 
 {
@@ -12,12 +10,12 @@
     ./modules/bspwm.nix
     ./modules/polybar.nix
     ./modules/picom.nix
-    ./modules/dunst.nix        # desativado automaticamente no niri via systemd
+    ./modules/dunst.nix
 
     ./modules/niri.nix
     ./modules/noctalia.nix
     ./modules/mouse-invert.nix
-    ./modules/hot-corner.nix   # canto superior direito → overview
+    ./modules/hot-corner.nix
 
     ./modules/terminals.nix
     ./modules/clipboard.nix
@@ -25,7 +23,7 @@
     ./modules/lf.nix
     ./modules/neovim.nix
     ./modules/zsh.nix
-    ./modules/files.nix        # MIME (Wayland)
+    ./modules/files.nix
 
     ./modules/wallpaper.nix
 
@@ -41,7 +39,7 @@
   home.packages = with pkgs; [
     pavucontrol
     mpv
-    imv             # viewer Wayland-nativo (X11 usa feh instalado em bspwm.nix)
+    imv
     brightnessctl
     file-roller
     p7zip

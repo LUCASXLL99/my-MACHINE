@@ -1,5 +1,5 @@
-# modules/nixos/system/users.nix
 { pkgs, ... }:
+
 {
   users.groups.yurii = {};
 

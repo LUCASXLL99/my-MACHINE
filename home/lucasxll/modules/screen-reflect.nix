@@ -1,6 +1,4 @@
-# home/lucasxll/modules/screen-reflect.nix
-# Espelha a tela horizontalmente (X11 e KDE).
-# DESATIVAR: comentar o import em default.nix
+# Espelha a tela horizontalmente (X11). Desativar: comentar o import em default.nix.
 
 { pkgs, ... }:
 

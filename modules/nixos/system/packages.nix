@@ -1,11 +1,7 @@
-# modules/nixos/system/packages.nix
 { pkgs, ... }:
+
 {
-  fonts.packages = with pkgs; [
-    nerd-fonts.jetbrains-mono
-    noto-fonts
-    inter
-  ];
+  fonts.packages = with pkgs; [ nerd-fonts.jetbrains-mono noto-fonts inter ];
 
   programs = {
     firefox.enable = false;
@@ -79,8 +75,7 @@
     python3 python312Packages.pip
 
     rustup
-    wasm-pack trunk
-    wasm-bindgen-cli
+    wasm-pack trunk wasm-bindgen-cli
     binaryen wabt
 
     nodejs_22

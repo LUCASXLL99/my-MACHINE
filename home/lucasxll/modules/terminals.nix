@@ -1,5 +1,3 @@
-# home/lucasxll/modules/terminals.nix
-
 { lib, ... }:
 
 {
@@ -9,32 +7,26 @@
       local config = wezterm.config_builder()
       local act    = wezterm.action
 
-      -- Fonte
       config.font      = wezterm.font('JetBrainsMono Nerd Font', { weight = 'Regular' })
       config.font_size = 14.0
       config.line_height = 1.2
       config.freetype_load_target   = 'Light'
       config.freetype_render_target = 'HorizontalLcd'
 
-      -- Cores (remover quando stylix.targets.wezterm = true)
       config.color_scheme = 'Tokyo Night'
 
-      -- Layout
       config.tab_bar_at_bottom  = false
       config.use_fancy_tab_bar  = false
       config.enable_scroll_bar  = true
       config.scrollback_lines   = 5000
       config.window_padding     = { left = 8, right = 14, top = 6, bottom = 20 }
 
-      -- Cursor
       config.default_cursor_style = 'BlinkingBlock'
       config.cursor_blink_rate    = 500
 
-      -- Janela
       config.window_decorations        = "RESIZE"
       config.window_background_opacity = 0.82
 
-      -- Atalhos
       config.keys = {
         {
           key = 'c', mods = 'CTRL',
@@ -67,8 +59,7 @@
         { key = '0', mods = 'CTRL', action = act.ResetFontSize    },
       }
 
-      -- Mouse: botão direito seleciona + copia para PrimarySelection.
-      -- Down=Paste bloquearia o início do drag — por isso Down=Select.
+      -- Botão direito: seleciona + copia para PrimarySelection (Down=Select evita bloquear drag).
       config.mouse_bindings = {
         {
           event  = { Down = { streak = 1, button = 'Right' } },

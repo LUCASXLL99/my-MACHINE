@@ -1,5 +1,4 @@
-# modules/nixos/software/no-keyring.nix
-# Desativa KWallet. ELECTRON_PASSWORD_STORE fica aqui (fonte única).
+# Desativa KWallet. ELECTRON_PASSWORD_STORE definido aqui (fonte única).
 
 { pkgs, ... }:
 

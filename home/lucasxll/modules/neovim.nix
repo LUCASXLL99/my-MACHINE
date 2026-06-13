@@ -1,5 +1,3 @@
-# home/lucasxll/modules/neovim.nix
-
 { pkgs, ... }:
 
 {
@@ -9,59 +7,34 @@
     viAlias       = true;
     vimAlias      = true;
 
-    # ── LSP servers e ferramentas externas ─────────────────────
     extraPackages = with pkgs; [
-      # ── LSP: linguagens existentes ──────────────────────────────────
-      nil
-      pyright
-      lua-language-server
-
-      # ── LSP: Rust ───────────────────────────────────────────────────
-      rust-analyzer
-      rustfmt
-
-      # ── LSP: Web ────────────────────────────────────────────────────
+      nil pyright lua-language-server
+      rust-analyzer rustfmt
       nodePackages.typescript-language-server
       nodePackages.vscode-langservers-extracted
       nodePackages."@tailwindcss/language-server"
       emmet-language-server
       nodePackages.prettier
       nodePackages.eslint
-
-      # ── Debugger ────────────────────────────────────────────────────
-      lldb
-      vscode-extensions.vadimcn.vscode-lldb
-
-      # ── Telescope ───────────────────────────────────────────────────
-      ripgrep
-      fd
+      lldb vscode-extensions.vadimcn.vscode-lldb
+      ripgrep fd
     ];
 
     plugins = with pkgs.vimPlugins; [
-
       plenary-nvim
 
-      # ── Tema ─────────────────────────────────────────────────
       {
         plugin = tokyonight-nvim;
         type   = "lua";
         config = ''
           require('tokyonight').setup({
-            style        = "night",
-            transparent  = true,
-            terminal_colors = true,
-            styles = {
-              comments   = { italic = true },
-              keywords   = { italic = true },
-              functions  = {},
-              variables  = {},
-            },
+            style = "night", transparent = true, terminal_colors = true,
+            styles = { comments = { italic = true }, keywords = { italic = true }, functions = {}, variables = {} },
           })
           vim.cmd("colorscheme tokyonight-night")
         '';
       }
 
-      # ── Statusline ───────────────────────────────────────────
       nvim-web-devicons
       {
         plugin = lualine-nvim;
@@ -69,10 +42,10 @@
         config = ''
           require('lualine').setup({
             options = {
-              theme            = 'tokyonight',
+              theme = 'tokyonight',
               section_separators   = { left = "", right = "" },
               component_separators = { left = "", right = "" },
-              globalstatus     = true,
+              globalstatus = true,
             },
             sections = {
               lualine_a = { 'mode' },
@@ -86,37 +59,28 @@
         '';
       }
 
-      # ── Which-key ─────────────────────────────────────────────
       {
         plugin = which-key-nvim;
         type   = "lua";
-        config = ''
-          require('which-key').setup({
-            delay = 400,
-          })
-        '';
+        config = "require('which-key').setup({ delay = 400 })";
       }
 
-      # ── Treesitter ────────────────────────────────────────────
       {
         plugin = (nvim-treesitter.withPlugins (p: with p; [
           nix bash python lua
           javascript typescript json yaml toml
           markdown markdown_inline
-          html css
-          c cpp
-          rust
+          html css c cpp rust
           vim vimdoc query
         ]));
         type   = "lua";
         config = ''
           require('nvim-treesitter.configs').setup({
             highlight = {
-              enable   = true,
-              disable  = function(lang, buf)
-                local max_filesize = 100 * 1024
+              enable  = true,
+              disable = function(lang, buf)
                 local ok, stats = pcall(vim.loop.fs_stat, vim.api.nvim_buf_get_name(buf))
-                if ok and stats and stats.size > max_filesize then return true end
+                if ok and stats and stats.size > 100 * 1024 then return true end
               end,
             },
             indent = { enable = true },
@@ -124,206 +88,92 @@
         '';
       }
 
-      # ── SchemaStore — schemas JSON para jsonls ────────────────
       SchemaStore-nvim
 
-      # ── LSP config ───────────────────────────────────────────
       {
         plugin = nvim-lspconfig;
         type   = "lua";
         config = ''
-          local lspconfig = require('lspconfig')
-          local capabilities = require('cmp_nvim_lsp').default_capabilities()
+          local lsp  = require('lspconfig')
+          local caps = require('cmp_nvim_lsp').default_capabilities()
 
-          lspconfig.nil_ls.setup({
-            capabilities = capabilities,
-            settings = {
-              ['nil'] = {
-                formatting = { command = { "nixpkgs-fmt" } },
-                nix = { flake = { autoEvalInputs = false } },
+          lsp.nil_ls.setup({
+            capabilities = caps,
+            settings = { ['nil'] = { formatting = { command = { "nixpkgs-fmt" } }, nix = { flake = { autoEvalInputs = false } } } },
+          })
+          lsp.pyright.setup({
+            capabilities = caps,
+            settings = { python = { analysis = { typeCheckingMode = "basic", autoSearchPaths = true, useLibraryCodeForTypes = true } } },
+          })
+          lsp.lua_ls.setup({
+            capabilities = caps,
+            settings = { Lua = {
+              runtime    = { version = 'LuaJIT' },
+              workspace  = { checkThirdParty = false, library = vim.api.nvim_get_runtime_file("", true) },
+              telemetry  = { enable = false },
+              diagnostics = { globals = { 'vim', 'wezterm' } },
+            }},
+          })
+
+          -- cargo.target detectado pelo workspace (.cargo/config.toml).
+          -- Sem target fixo: fixar wasm32 aqui quebra projetos nativos (axum, actix).
+          lsp.rust_analyzer.setup({
+            capabilities = caps,
+            settings = { ['rust-analyzer'] = {
+              checkOnSave  = { command = "clippy" },
+              procMacro    = { enable = true },
+              cargo        = { features = "all", buildScripts = { enable = true } },
+              diagnostics  = { enable = true, experimental = { enable = true } },
+              inlayHints   = {
+                bindingModeHints = { enable = true }, chainingHints = { enable = true },
+                parameterHints   = { enable = true }, typeHints     = { enable = true },
+                closureReturnTypeHints = { enable = "always" },
               },
-            },
+            }},
           })
 
-          lspconfig.pyright.setup({
-            capabilities = capabilities,
+          lsp.ts_ls.setup({
+            capabilities = caps,
             settings = {
-              python = {
-                analysis = {
-                  typeCheckingMode   = "basic",
-                  autoSearchPaths    = true,
-                  useLibraryCodeForTypes = true,
-                },
-              },
+              typescript  = { inlayHints = { includeInlayParameterNameHints = 'all', includeInlayFunctionParameterTypeHints = true, includeInlayVariableTypeHints = true, includeInlayPropertyDeclarationTypeHints = true, includeInlayFunctionLikeReturnTypeHints = true } },
+              javascript  = { inlayHints = { includeInlayParameterNameHints = 'all', includeInlayFunctionParameterTypeHints = true, includeInlayVariableTypeHints = true } },
             },
           })
+          lsp.html.setup({ capabilities = caps, filetypes = { 'html', 'htmldjango', 'jinja' }, init_options = { provideFormatter = false } })
+          lsp.cssls.setup({ capabilities = caps, settings = { css = { validate = true, lint = { unknownAtRules = "ignore" } }, scss = { validate = true } } })
+          lsp.jsonls.setup({ capabilities = caps, settings = { json = { schemas = require('schemastore').json.schemas(), validate = { enable = true } } } })
+          lsp.emmet_language_server.setup({ capabilities = caps, filetypes = { 'html', 'css', 'scss', 'javascript', 'javascriptreact', 'typescript', 'typescriptreact' } })
+          lsp.tailwindcss.setup({ capabilities = caps, root_dir = require('lspconfig.util').root_pattern('tailwind.config.js', 'tailwind.config.ts', 'postcss.config.js', 'postcss.config.ts') })
+          lsp.eslint.setup({ capabilities = caps, on_attach = function(_, bufnr)
+            vim.api.nvim_create_autocmd('BufWritePre', { buffer = bufnr, command = 'EslintFixAll' })
+          end })
 
-          lspconfig.lua_ls.setup({
-            capabilities = capabilities,
-            settings = {
-              Lua = {
-                runtime    = { version = 'LuaJIT' },
-                workspace  = { checkThirdParty = false, library = vim.api.nvim_get_runtime_file("", true) },
-                telemetry  = { enable = false },
-                diagnostics = { globals = { 'vim', 'wezterm' } },
-              },
-            },
-          })
-
-          -- ── Rust LSP (rust-analyzer) ──────────────────────────
-          -- cargo.target é detectado automaticamente pelo workspace:
-          --   • se .cargo/config.toml tiver [build] target = "wasm32-*" → usa wasm32
-          --   • senão → usa o target nativo (x86_64-unknown-linux-gnu)
-          -- Fixar wasm32 aqui quebra completamente projetos nativos (axum,
-          -- actix, serviços backend): std::net, tokio::fs, std::io desaparecem
-          -- do autocomplete porque não existem no wasm32.
-          lspconfig.rust_analyzer.setup({
-            capabilities = capabilities,
-            settings = {
-              ['rust-analyzer'] = {
-                checkOnSave = {
-                  -- clippy em vez de check: mostra mais warnings úteis
-                  -- extraArgs vazios → clippy usa o target do workspace
-                  command   = "clippy",
-                },
-                procMacro  = { enable = true },
-                cargo      = {
-                  -- SEM target fixo: o analyzer lê o .cargo/config.toml do projeto.
-                  -- Para projetos WASM: adicione ao .cargo/config.toml do projeto:
-                  --   [build]
-                  --   target = "wasm32-unknown-unknown"
-                  features  = "all",
-                  buildScripts = { enable = true },
-                },
-                diagnostics = {
-                  -- Mostra erros do clippy inline no editor
-                  enable = true,
-                  experimental = { enable = true },
-                },
-                inlayHints = {
-                  bindingModeHints       = { enable = true },
-                  chainingHints          = { enable = true },
-                  parameterHints         = { enable = true },
-                  typeHints              = { enable = true },
-                  closureReturnTypeHints = { enable = "always" },
-                },
-              },
-            },
-          })
-
-          -- ── TypeScript / JavaScript LSP ───────────────────────
-          lspconfig.ts_ls.setup({
-            capabilities = capabilities,
-            settings = {
-              typescript = {
-                inlayHints = {
-                  includeInlayParameterNameHints         = 'all',
-                  includeInlayFunctionParameterTypeHints = true,
-                  includeInlayVariableTypeHints          = true,
-                  includeInlayPropertyDeclarationTypeHints = true,
-                  includeInlayFunctionLikeReturnTypeHints  = true,
-                },
-              },
-              javascript = {
-                inlayHints = {
-                  includeInlayParameterNameHints         = 'all',
-                  includeInlayFunctionParameterTypeHints = true,
-                  includeInlayVariableTypeHints          = true,
-                },
-              },
-            },
-          })
-
-          -- ── HTML LSP ──────────────────────────────────────────
-          lspconfig.html.setup({
-            capabilities = capabilities,
-            filetypes    = { 'html', 'htmldjango', 'jinja' },
-            init_options = {
-              provideFormatter = false,
-            },
-          })
-
-          -- ── CSS / SCSS LSP ────────────────────────────────────
-          lspconfig.cssls.setup({
-            capabilities = capabilities,
-            settings = {
-              css  = { validate = true, lint = { unknownAtRules = "ignore" } },
-              scss = { validate = true },
-            },
-          })
-
-          -- ── JSON LSP ──────────────────────────────────────────
-          lspconfig.jsonls.setup({
-            capabilities = capabilities,
-            settings = {
-              json = {
-                schemas = require('schemastore').json.schemas(),
-                validate = { enable = true },
-              },
-            },
-          })
-
-          -- ── Emmet — expansões HTML/CSS ────────────────────────
-          lspconfig.emmet_language_server.setup({
-            capabilities = capabilities,
-            filetypes = {
-              'html', 'css', 'scss', 'javascript', 'javascriptreact',
-              'typescript', 'typescriptreact',
-            },
-          })
-
-          -- ── Tailwind CSS LSP ──────────────────────────────────
-          lspconfig.tailwindcss.setup({
-            capabilities = capabilities,
-            root_dir = require('lspconfig.util').root_pattern(
-              'tailwind.config.js', 'tailwind.config.ts',
-              'postcss.config.js', 'postcss.config.ts'
-            ),
-          })
-
-          -- ── ESLint LSP ────────────────────────────────────────
-          lspconfig.eslint.setup({
-            capabilities = capabilities,
-            on_attach = function(_, bufnr)
-              vim.api.nvim_create_autocmd('BufWritePre', {
-                buffer  = bufnr,
-                command = 'EslintFixAll',
-              })
-            end,
-          })
-
-          -- ── Atalhos LSP ───────────────────────────────────────
           vim.api.nvim_create_autocmd('LspAttach', {
             group = vim.api.nvim_create_augroup('LspKeymaps', {}),
             callback = function(ev)
-              local opts = { buffer = ev.buf, silent = true }
-              vim.keymap.set('n', 'gd',        vim.lsp.buf.definition,      vim.tbl_extend('force', opts, { desc = 'Go to Definition' }))
-              vim.keymap.set('n', 'gD',        vim.lsp.buf.declaration,     vim.tbl_extend('force', opts, { desc = 'Go to Declaration' }))
-              vim.keymap.set('n', 'gr',        vim.lsp.buf.references,      vim.tbl_extend('force', opts, { desc = 'References' }))
-              vim.keymap.set('n', 'gi',        vim.lsp.buf.implementation,  vim.tbl_extend('force', opts, { desc = 'Go to Implementation' }))
-              vim.keymap.set('n', 'K',         vim.lsp.buf.hover,           vim.tbl_extend('force', opts, { desc = 'Hover Documentation' }))
-              vim.keymap.set('n', '<leader>rn', vim.lsp.buf.rename,         vim.tbl_extend('force', opts, { desc = 'Rename' }))
-              vim.keymap.set('n', '<leader>ca', vim.lsp.buf.code_action,    vim.tbl_extend('force', opts, { desc = 'Code Action' }))
-              vim.keymap.set('n', '[d',        vim.diagnostic.goto_prev,    vim.tbl_extend('force', opts, { desc = 'Prev Diagnostic' }))
-              vim.keymap.set('n', ']d',        vim.diagnostic.goto_next,    vim.tbl_extend('force', opts, { desc = 'Next Diagnostic' }))
-              vim.keymap.set('n', '<leader>e', vim.diagnostic.open_float,   vim.tbl_extend('force', opts, { desc = 'Show Diagnostics' }))
+              local o = { buffer = ev.buf, silent = true }
+              local k = vim.keymap.set
+              k('n', 'gd',         vim.lsp.buf.definition,     vim.tbl_extend('force', o, { desc = 'Definition' }))
+              k('n', 'gD',         vim.lsp.buf.declaration,    vim.tbl_extend('force', o, { desc = 'Declaration' }))
+              k('n', 'gr',         vim.lsp.buf.references,     vim.tbl_extend('force', o, { desc = 'References' }))
+              k('n', 'gi',         vim.lsp.buf.implementation, vim.tbl_extend('force', o, { desc = 'Implementation' }))
+              k('n', 'K',          vim.lsp.buf.hover,          vim.tbl_extend('force', o, { desc = 'Hover' }))
+              k('n', '<leader>rn', vim.lsp.buf.rename,         vim.tbl_extend('force', o, { desc = 'Rename' }))
+              k('n', '<leader>ca', vim.lsp.buf.code_action,    vim.tbl_extend('force', o, { desc = 'Code Action' }))
+              k('n', '[d',         vim.diagnostic.goto_prev,   vim.tbl_extend('force', o, { desc = 'Prev Diagnostic' }))
+              k('n', ']d',         vim.diagnostic.goto_next,   vim.tbl_extend('force', o, { desc = 'Next Diagnostic' }))
+              k('n', '<leader>e',  vim.diagnostic.open_float,  vim.tbl_extend('force', o, { desc = 'Show Diagnostics' }))
             end,
           })
 
-          local signs = { Error = " ", Warn = " ", Hint = "󰠠 ", Info = " " }
-          for type, icon in pairs(signs) do
+          for type, icon in pairs({ Error = " ", Warn = " ", Hint = "󰠠 ", Info = " " }) do
             local hl = "DiagnosticSign" .. type
             vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = hl })
           end
         '';
       }
 
-      # ── Completion ───────────────────────────────────────────
-      luasnip
-      cmp_luasnip
-      cmp-nvim-lsp
-      cmp-buffer
-      cmp-path
+      luasnip cmp_luasnip cmp-nvim-lsp cmp-buffer cmp-path
       {
         plugin = nvim-cmp;
         type   = "lua";
@@ -332,9 +182,7 @@
           local luasnip = require('luasnip')
 
           cmp.setup({
-            snippet = {
-              expand = function(args) luasnip.lsp_expand(args.body) end,
-            },
+            snippet = { expand = function(args) luasnip.lsp_expand(args.body) end },
             mapping = cmp.mapping.preset.insert({
               ['<C-b>']     = cmp.mapping.scroll_docs(-4),
               ['<C-f>']     = cmp.mapping.scroll_docs(4),
@@ -344,229 +192,134 @@
               ['<Tab>'] = cmp.mapping(function(fallback)
                 if cmp.visible() then cmp.select_next_item()
                 elseif luasnip.expand_or_jumpable() then luasnip.expand_or_jump()
-                else fallback()
-                end
+                else fallback() end
               end, { 'i', 's' }),
               ['<S-Tab>'] = cmp.mapping(function(fallback)
                 if cmp.visible() then cmp.select_prev_item()
                 elseif luasnip.jumpable(-1) then luasnip.jump(-1)
-                else fallback()
-                end
+                else fallback() end
               end, { 'i', 's' }),
             }),
-            sources = cmp.config.sources({
-              { name = 'nvim_lsp' },
-              { name = 'luasnip'  },
-              { name = 'path'     },
-            }, {
-              { name = 'buffer' },
-            }),
+            sources = cmp.config.sources(
+              { { name = 'nvim_lsp' }, { name = 'luasnip' }, { name = 'path' } },
+              { { name = 'buffer' } }
+            ),
             formatting = {
-              format = function(entry, vim_item)
-                local icons = {
-                  nvim_lsp = "󰒋", luasnip = "", buffer = "󰦨",
-                  path = "󰉋",
-                }
-                vim_item.menu = icons[entry.source.name]
-                return vim_item
+              format = function(entry, item)
+                item.menu = ({ nvim_lsp = "󰒋", luasnip = "", buffer = "󰦨", path = "󰉋" })[entry.source.name]
+                return item
               end,
             },
           })
         '';
       }
 
-      # ── Telescope ────────────────────────────────────────────
       telescope-fzf-native-nvim
       {
         plugin = telescope-nvim;
         type   = "lua";
         config = ''
-          local telescope = require('telescope')
-          local builtin   = require('telescope.builtin')
-          local actions   = require('telescope.actions')
+          local t   = require('telescope')
+          local b   = require('telescope.builtin')
+          local act = require('telescope.actions')
 
-          telescope.setup({
+          t.setup({
             defaults = {
-              mappings = {
-                i = {
-                  ['<C-k>'] = actions.move_selection_previous,
-                  ['<C-j>'] = actions.move_selection_next,
-                  ['<Esc>'] = actions.close,
-                },
-              },
-              find_command = { 'fd', '--type', 'f', '--hidden', '--exclude', '.git' },
-              vimgrep_arguments = {
-                'rg', '--color=never', '--no-heading', '--with-filename',
-                '--line-number', '--column', '--smart-case', '--hidden',
-                '--glob=!.git/',
-              },
+              mappings = { i = { ['<C-k>'] = act.move_selection_previous, ['<C-j>'] = act.move_selection_next, ['<Esc>'] = act.close } },
+              find_command      = { 'fd', '--type', 'f', '--hidden', '--exclude', '.git' },
+              vimgrep_arguments = { 'rg', '--color=never', '--no-heading', '--with-filename', '--line-number', '--column', '--smart-case', '--hidden', '--glob=!.git/' },
             },
-            extensions = {
-              fzf = {
-                fuzzy                   = true,
-                override_generic_sorter = true,
-                override_file_sorter    = true,
-                case_mode               = "smart_case",
-              },
-            },
+            extensions = { fzf = { fuzzy = true, override_generic_sorter = true, override_file_sorter = true, case_mode = "smart_case" } },
           })
+          t.load_extension('fzf')
 
-          telescope.load_extension('fzf')
-
-          vim.keymap.set('n', '<leader>sf', builtin.find_files,    { desc = 'Search Files' })
-          vim.keymap.set('n', '<leader>sg', builtin.live_grep,     { desc = 'Search Grep' })
-          vim.keymap.set('n', '<leader>sb', builtin.buffers,       { desc = 'Search Buffers' })
-          vim.keymap.set('n', '<leader>sh', builtin.help_tags,     { desc = 'Search Help' })
-          vim.keymap.set('n', '<leader>sr', builtin.oldfiles,      { desc = 'Search Recent' })
-          vim.keymap.set('n', '<leader>sd', builtin.diagnostics,   { desc = 'Search Diagnostics' })
-          vim.keymap.set('n', '<leader>sk', builtin.keymaps,       { desc = 'Search Keymaps' })
-          vim.keymap.set('n', '<leader>/',  builtin.current_buffer_fuzzy_find, { desc = 'Search in Buffer' })
-          vim.keymap.set('n', '<C-p>', builtin.find_files, { desc = 'Find Files' })
+          local k = vim.keymap.set
+          k('n', '<leader>sf', b.find_files,                    { desc = 'Search Files' })
+          k('n', '<leader>sg', b.live_grep,                     { desc = 'Search Grep' })
+          k('n', '<leader>sb', b.buffers,                       { desc = 'Search Buffers' })
+          k('n', '<leader>sh', b.help_tags,                     { desc = 'Search Help' })
+          k('n', '<leader>sr', b.oldfiles,                      { desc = 'Search Recent' })
+          k('n', '<leader>sd', b.diagnostics,                   { desc = 'Search Diagnostics' })
+          k('n', '<leader>sk', b.keymaps,                       { desc = 'Search Keymaps' })
+          k('n', '<leader>/',  b.current_buffer_fuzzy_find,     { desc = 'Search in Buffer' })
+          k('n', '<C-p>',      b.find_files,                    { desc = 'Find Files' })
         '';
       }
 
-      # ── Git signs ─────────────────────────────────────────────
       {
         plugin = gitsigns-nvim;
         type   = "lua";
         config = ''
           require('gitsigns').setup({
-            signs = {
-              add          = { text = '▎' },
-              change       = { text = '▎' },
-              delete       = { text = '▁' },
-              topdelete    = { text = '▔' },
-              changedelete = { text = '▎' },
-              untracked    = { text = '░' },
-            },
+            signs = { add = { text = '▎' }, change = { text = '▎' }, delete = { text = '▁' }, topdelete = { text = '▔' }, changedelete = { text = '▎' }, untracked = { text = '░' } },
             on_attach = function(bufnr)
               local gs = package.loaded.gitsigns
-              local function map(mode, l, r, opts)
-                opts = opts or {}
-                opts.buffer = bufnr
-                vim.keymap.set(mode, l, r, opts)
-              end
-              map('n', ']h', gs.next_hunk,            { desc = 'Next Hunk' })
-              map('n', '[h', gs.prev_hunk,            { desc = 'Prev Hunk' })
-              map('n', '<leader>hs', gs.stage_hunk,   { desc = 'Stage Hunk' })
-              map('n', '<leader>hr', gs.reset_hunk,   { desc = 'Reset Hunk' })
-              map('n', '<leader>hp', gs.preview_hunk, { desc = 'Preview Hunk' })
-              map('n', '<leader>hb', function() gs.blame_line({ full = true }) end, { desc = 'Blame Line' })
-              map('n', '<leader>hd', gs.diffthis,     { desc = 'Diff This' })
+              local function m(mode, l, r, opts) opts = opts or {}; opts.buffer = bufnr; vim.keymap.set(mode, l, r, opts) end
+              m('n', ']h', gs.next_hunk,            { desc = 'Next Hunk' })
+              m('n', '[h', gs.prev_hunk,            { desc = 'Prev Hunk' })
+              m('n', '<leader>hs', gs.stage_hunk,   { desc = 'Stage Hunk' })
+              m('n', '<leader>hr', gs.reset_hunk,   { desc = 'Reset Hunk' })
+              m('n', '<leader>hp', gs.preview_hunk, { desc = 'Preview Hunk' })
+              m('n', '<leader>hb', function() gs.blame_line({ full = true }) end, { desc = 'Blame Line' })
+              m('n', '<leader>hd', gs.diffthis,     { desc = 'Diff This' })
             end,
           })
         '';
       }
 
-      # ── nvim-surround ─────────────────────────────────────────
-      {
-        plugin = nvim-surround;
-        type   = "lua";
-        config = ''
-          require('nvim-surround').setup()
-          -- ysiw"  → envolve palavra com ""
-          -- cs"'   → troca "" por ''''
-          -- ds"    → remove ""
-          -- S" (visual) → envolve seleção
-        '';
-      }
+      { plugin = nvim-surround; type = "lua"; config = "require('nvim-surround').setup()"; }
 
-      # ── nvim-autopairs ────────────────────────────────────────
       {
         plugin = nvim-autopairs;
         type   = "lua";
         config = ''
-          local autopairs = require('nvim-autopairs')
-          autopairs.setup({
-            check_ts = true,
-          })
-          local cmp_autopairs = require('nvim-autopairs.completion.cmp')
-          local cmp = require('cmp')
-          cmp.event:on('confirm_done', cmp_autopairs.on_confirm_done())
+          local ap = require('nvim-autopairs')
+          ap.setup({ check_ts = true })
+          require('nvim-autopairs.completion.cmp').on_confirm_done()
+          require('cmp').event:on('confirm_done', require('nvim-autopairs.completion.cmp').on_confirm_done())
         '';
       }
 
-      # ── comment.nvim ──────────────────────────────────────────
-      {
-        plugin = comment-nvim;
-        type   = "lua";
-        config = ''
-          require('Comment').setup({
-            -- gcc  → comenta linha
-            -- gc   → comenta seleção visual
-            -- gbc  → comenta bloco
-            -- gco/gcO/gcA → inserem comentário em posições variadas
-          })
-        '';
-      }
+      { plugin = comment-nvim; type = "lua"; config = "require('Comment').setup()"; }
 
-      # ── trouble.nvim ──────────────────────────────────────────
       {
         plugin = trouble-nvim;
         type   = "lua";
         config = ''
           require('trouble').setup({
-            modes = {
-              diagnostics = {
-                auto_open    = false,
-                auto_close   = true,
-                auto_preview = true,
-              },
-            },
-            icons = {
-              error   = " ",
-              warning = " ",
-              hint    = "󰠠 ",
-              info    = " ",
-            },
+            modes = { diagnostics = { auto_open = false, auto_close = true, auto_preview = true } },
+            icons = { error = " ", warning = " ", hint = "󰠠 ", info = " " },
           })
-          vim.keymap.set('n', '<leader>xx', '<cmd>Trouble diagnostics toggle<CR>',
-            { desc = 'Toggle Diagnostics (Trouble)' })
-          vim.keymap.set('n', '<leader>xb', '<cmd>Trouble diagnostics toggle filter.buf=0<CR>',
-            { desc = 'Buffer Diagnostics (Trouble)' })
-          vim.keymap.set('n', '<leader>xl', '<cmd>Trouble loclist toggle<CR>',
-            { desc = 'Location List (Trouble)' })
-          vim.keymap.set('n', '<leader>xq', '<cmd>Trouble qflist toggle<CR>',
-            { desc = 'Quickfix List (Trouble)' })
+          local k = vim.keymap.set
+          k('n', '<leader>xx', '<cmd>Trouble diagnostics toggle<CR>',            { desc = 'Diagnostics' })
+          k('n', '<leader>xb', '<cmd>Trouble diagnostics toggle filter.buf=0<CR>', { desc = 'Buffer Diagnostics' })
+          k('n', '<leader>xl', '<cmd>Trouble loclist toggle<CR>',                { desc = 'Location List' })
+          k('n', '<leader>xq', '<cmd>Trouble qflist toggle<CR>',                 { desc = 'Quickfix' })
         '';
       }
 
-      # ── conform.nvim — formatação unificada ──────────────────
       {
         plugin = conform-nvim;
         type   = "lua";
         config = ''
           require('conform').setup({
             formatters_by_ft = {
-              rust            = { 'rustfmt' },
-              javascript      = { 'prettier' },
-              typescript      = { 'prettier' },
-              javascriptreact = { 'prettier' },
-              typescriptreact = { 'prettier' },
-              html            = { 'prettier' },
-              css             = { 'prettier' },
-              scss            = { 'prettier' },
-              json            = { 'prettier' },
-              markdown        = { 'prettier' },
-              yaml            = { 'prettier' },
-              nix             = { 'nixpkgs-fmt' },
+              rust = { 'rustfmt' },
+              nix  = { 'nixpkgs-fmt' },
+              javascript = { 'prettier' }, typescript      = { 'prettier' },
+              javascriptreact = { 'prettier' }, typescriptreact = { 'prettier' },
+              html = { 'prettier' }, css = { 'prettier' }, scss = { 'prettier' },
+              json = { 'prettier' }, markdown = { 'prettier' }, yaml = { 'prettier' },
             },
-            format_on_save = {
-              timeout_ms   = 500,
-              lsp_fallback = true,
-            },
+            format_on_save = { timeout_ms = 500, lsp_fallback = true },
           })
-          -- Sobrescreve <leader>f do lspconfig
           vim.keymap.set({ 'n', 'v' }, '<leader>f', function()
             require('conform').format({ async = true, lsp_fallback = true })
-          end, { desc = 'Format (conform)' })
+          end, { desc = 'Format' })
         '';
       }
 
-      # ── nvim-dap — Debug Adapter Protocol ────────────────────
-      # nvim-dap-ui e nvim-nio são dependências, carregam sem config própria
-      nvim-dap-ui
-      nvim-nio
+      nvim-dap-ui nvim-nio
       {
         plugin = nvim-dap;
         type   = "lua";
@@ -575,26 +328,10 @@
           local dapui = require('dapui')
 
           dapui.setup({
-            icons = { expanded = "▾", collapsed = "▸", current_frame = "▸" },
+            icons   = { expanded = "▾", collapsed = "▸", current_frame = "▸" },
             layouts = {
-              {
-                elements = {
-                  { id = "scopes",      size = 0.35 },
-                  { id = "breakpoints", size = 0.15 },
-                  { id = "stacks",      size = 0.30 },
-                  { id = "watches",     size = 0.20 },
-                },
-                size     = 45,
-                position = "left",
-              },
-              {
-                elements = {
-                  { id = "repl",    size = 0.5 },
-                  { id = "console", size = 0.5 },
-                },
-                size     = 10,
-                position = "bottom",
-              },
+              { elements = { { id = "scopes", size = 0.35 }, { id = "breakpoints", size = 0.15 }, { id = "stacks", size = 0.30 }, { id = "watches", size = 0.20 } }, size = 45, position = "left" },
+              { elements = { { id = "repl", size = 0.5 }, { id = "console", size = 0.5 } }, size = 10, position = "bottom" },
             },
           })
 
@@ -602,151 +339,86 @@
           dap.listeners.before.event_terminated["dapui_config"]  = function() dapui.close() end
           dap.listeners.before.event_exited["dapui_config"]      = function() dapui.close() end
 
-          -- ── Adapter codelldb ───────────────────────────────────
-          local codelldb_path = vim.fn.exepath('codelldb')
-          if codelldb_path ~= "" then
-            dap.adapters.codelldb = {
-              type = 'server',
-              port = "''${port}",
-              executable = {
-                command = codelldb_path,
-                args    = { '--port', "''${port}" },
-              },
-            }
-          else
-            -- Fallback: glob no nix store
-            dap.adapters.codelldb = {
-              type = 'server',
-              port = "''${port}",
-              executable = {
-                command = vim.fn.glob(
-                  '/nix/store/*-vscode-extension-vadimcn-vscode-lldb-*/share/vscode/extensions/vadimcn.vscode-lldb/adapter/codelldb'
-                ),
-                args = { '--port', "''${port}" },
-              },
-            }
+          local codelldb = vim.fn.exepath('codelldb')
+          if codelldb == "" then
+            codelldb = vim.fn.glob('/nix/store/*-vscode-extension-vadimcn-vscode-lldb-*/share/vscode/extensions/vadimcn.vscode-lldb/adapter/codelldb')
           end
+          dap.adapters.codelldb = { type = 'server', port = "''${port}", executable = { command = codelldb, args = { '--port', "''${port}" } } }
 
-          -- ── Configuração Rust ──────────────────────────────────
-          dap.configurations.rust = {
-            {
-              name    = "Debug binário (cargo build antes)",
-              type    = "codelldb",
-              request = "launch",
-              program = function()
-                local crate = vim.fn.fnamemodify(
-                  vim.fn.findfile('Cargo.toml', '.;'), ':h:t'
-                )
-                local default = vim.fn.getcwd() .. '/target/debug/' .. crate
-                return vim.fn.input('Binário: ', default, 'file')
-              end,
-              cwd         = "''${workspaceFolder}",
-              stopOnEntry = false,
-              initCommands = function()
-                local rustc_sysroot = vim.fn.trim(vim.fn.system('rustc --print sysroot'))
-                local script_import = 'command script import "'
-                  .. rustc_sysroot .. '/lib/rustlib/etc/lldb_lookup.py"'
-                local commands_file = rustc_sysroot .. '/lib/rustlib/etc/lldb_commands'
-                local commands = {}
-                local file = io.open(commands_file, 'r')
-                if file then
-                  for line in file:lines() do
-                    table.insert(commands, line)
-                  end
-                  file:close()
-                end
-                table.insert(commands, 1, script_import)
-                return commands
-              end,
-            },
-          }
-
+          dap.configurations.rust = {{
+            name    = "Debug binário",
+            type    = "codelldb",
+            request = "launch",
+            program = function()
+              local crate = vim.fn.fnamemodify(vim.fn.findfile('Cargo.toml', '.;'), ':h:t')
+              return vim.fn.input('Binário: ', vim.fn.getcwd() .. '/target/debug/' .. crate, 'file')
+            end,
+            cwd         = "''${workspaceFolder}",
+            stopOnEntry = false,
+            initCommands = function()
+              local root     = vim.fn.trim(vim.fn.system('rustc --print sysroot'))
+              local cmds     = {}
+              local f        = io.open(root .. '/lib/rustlib/etc/lldb_commands', 'r')
+              if f then for line in f:lines() do table.insert(cmds, line) end; f:close() end
+              table.insert(cmds, 1, 'command script import "' .. root .. '/lib/rustlib/etc/lldb_lookup.py"')
+              return cmds
+            end,
+          }}
           dap.configurations.c   = dap.configurations.rust
           dap.configurations.cpp = dap.configurations.rust
 
-          -- ── Keybinds ───────────────────────────────────────────
-          local map = vim.keymap.set
-          map('n', '<F5>',       dap.continue,          { desc = 'Debug: Continuar / Iniciar' })
-          map('n', '<F10>',      dap.step_over,         { desc = 'Debug: Step Over' })
-          map('n', '<F11>',      dap.step_into,         { desc = 'Debug: Step Into' })
-          map('n', '<F12>',      dap.step_out,          { desc = 'Debug: Step Out' })
-          map('n', '<leader>db', dap.toggle_breakpoint, { desc = 'Debug: Toggle Breakpoint' })
-          map('n', '<leader>dB', function()
-            dap.set_breakpoint(vim.fn.input('Condição: '))
-          end, { desc = 'Debug: Breakpoint Condicional' })
-          map('n', '<leader>dr', dap.repl.open,  { desc = 'Debug: REPL' })
-          map('n', '<leader>dl', dap.run_last,   { desc = 'Debug: Repetir último' })
-          map('n', '<leader>du', dapui.toggle,   { desc = 'Debug: Toggle UI' })
-          map('n', '<leader>dx', dap.terminate,  { desc = 'Debug: Terminar' })
+          local k = vim.keymap.set
+          k('n', '<F5>',       dap.continue,          { desc = 'Debug: Continue' })
+          k('n', '<F10>',      dap.step_over,         { desc = 'Debug: Step Over' })
+          k('n', '<F11>',      dap.step_into,         { desc = 'Debug: Step Into' })
+          k('n', '<F12>',      dap.step_out,          { desc = 'Debug: Step Out' })
+          k('n', '<leader>db', dap.toggle_breakpoint, { desc = 'Debug: Breakpoint' })
+          k('n', '<leader>dB', function() dap.set_breakpoint(vim.fn.input('Condição: ')) end, { desc = 'Debug: Cond Breakpoint' })
+          k('n', '<leader>dr', dap.repl.open,  { desc = 'Debug: REPL' })
+          k('n', '<leader>dl', dap.run_last,   { desc = 'Debug: Run Last' })
+          k('n', '<leader>du', dapui.toggle,   { desc = 'Debug: UI' })
+          k('n', '<leader>dx', dap.terminate,  { desc = 'Debug: Terminate' })
 
-          vim.fn.sign_define('DapBreakpoint',          { text='●', texthl='DiagnosticSignError' })
-          vim.fn.sign_define('DapBreakpointCondition', { text='◐', texthl='DiagnosticSignWarn'  })
-          vim.fn.sign_define('DapStopped',             { text='▶', texthl='DiagnosticSignInfo'  })
+          vim.fn.sign_define('DapBreakpoint',          { text = '●', texthl = 'DiagnosticSignError' })
+          vim.fn.sign_define('DapBreakpointCondition', { text = '◐', texthl = 'DiagnosticSignWarn'  })
+          vim.fn.sign_define('DapStopped',             { text = '▶', texthl = 'DiagnosticSignInfo'  })
         '';
       }
 
-    ]; # fim plugins
+    ];
 
     extraLuaConfig = ''
       vim.g.mapleader      = " "
       vim.g.maplocalleader = " "
 
       local opt = vim.opt
-
-      opt.number         = true
-      opt.relativenumber = true
-      opt.cursorline     = true
-      opt.signcolumn     = "yes"
-      opt.wrap           = false
-      opt.scrolloff      = 8
-      opt.sidescrolloff  = 8
-
-      opt.tabstop     = 2
-      opt.shiftwidth  = 2
-      opt.expandtab   = true
-      opt.smartindent = true
-
-      opt.ignorecase = true
-      opt.smartcase  = true
-      opt.hlsearch   = false
-      opt.incsearch  = true
-
-      opt.updatetime = 250
-      opt.timeoutlen = 400
-
+      opt.number = true; opt.relativenumber = true; opt.cursorline = true; opt.signcolumn = "yes"
+      opt.wrap = false; opt.scrolloff = 8; opt.sidescrolloff = 8
+      opt.tabstop = 2; opt.shiftwidth = 2; opt.expandtab = true; opt.smartindent = true
+      opt.ignorecase = true; opt.smartcase = true; opt.hlsearch = false; opt.incsearch = true
+      opt.updatetime = 250; opt.timeoutlen = 400
       opt.clipboard = "unnamedplus"
+      opt.termguicolors = true; opt.background = "dark"; opt.showmode = false
+      opt.splitright = true; opt.splitbelow = true
 
-      opt.termguicolors = true
-      opt.background    = "dark"
-      opt.showmode      = false
-
-      opt.splitright = true
-      opt.splitbelow = true
-
-      local map = vim.keymap.set
-
-      map({ 'n', 'i', 'v' }, '<C-s>', '<cmd>w<CR>', { desc = 'Save' })
-      map('n', '<leader>q', '<cmd>q<CR>', { desc = 'Quit' })
-
-      map('n', '<C-h>', '<C-w>h', { desc = 'Move to left split' })
-      map('n', '<C-j>', '<C-w>j', { desc = 'Move to lower split' })
-      map('n', '<C-k>', '<C-w>k', { desc = 'Move to upper split' })
-      map('n', '<C-l>', '<C-w>l', { desc = 'Move to right split' })
-
-      map('n', '<S-l>', '<cmd>bnext<CR>',     { desc = 'Next Buffer' })
-      map('n', '<S-h>', '<cmd>bprevious<CR>', { desc = 'Prev Buffer' })
-      map('n', '<leader>bd', '<cmd>bd<CR>',   { desc = 'Close Buffer' })
-
-      map('v', 'J', ":m '>+1<CR>gv=gv", { desc = 'Move selection down' })
-      map('v', 'K', ":m '<-2<CR>gv=gv", { desc = 'Move selection up' })
-
-      map('n', '<C-d>', '<C-d>zz', { desc = 'Scroll down + center' })
-      map('n', '<C-u>', '<C-u>zz', { desc = 'Scroll up + center' })
-      map('n', 'n',     'nzzzv',   { desc = 'Next search result + center' })
-      map('n', 'N',     'Nzzzv',   { desc = 'Prev search result + center' })
-
-      map('n', '<Esc>', '<cmd>nohlsearch<CR>', { desc = 'Clear search highlight' })
-      map('n', 'Q', '<nop>')
+      local k = vim.keymap.set
+      k({ 'n', 'i', 'v' }, '<C-s>', '<cmd>w<CR>',        { desc = 'Save' })
+      k('n', '<leader>q',   '<cmd>q<CR>',                 { desc = 'Quit' })
+      k('n', '<C-h>', '<C-w>h', { desc = 'Left split' })
+      k('n', '<C-j>', '<C-w>j', { desc = 'Lower split' })
+      k('n', '<C-k>', '<C-w>k', { desc = 'Upper split' })
+      k('n', '<C-l>', '<C-w>l', { desc = 'Right split' })
+      k('n', '<S-l>', '<cmd>bnext<CR>',     { desc = 'Next Buffer' })
+      k('n', '<S-h>', '<cmd>bprevious<CR>', { desc = 'Prev Buffer' })
+      k('n', '<leader>bd', '<cmd>bd<CR>',   { desc = 'Close Buffer' })
+      k('v', 'J', ":m '>+1<CR>gv=gv", { desc = 'Move down' })
+      k('v', 'K', ":m '<-2<CR>gv=gv", { desc = 'Move up' })
+      k('n', '<C-d>', '<C-d>zz', { desc = 'Scroll down' })
+      k('n', '<C-u>', '<C-u>zz', { desc = 'Scroll up' })
+      k('n', 'n', 'nzzzv', { desc = 'Next result' })
+      k('n', 'N', 'Nzzzv', { desc = 'Prev result' })
+      k('n', '<Esc>', '<cmd>nohlsearch<CR>', { desc = 'Clear highlight' })
+      k('n', 'Q', '<nop>')
     '';
   };
 }

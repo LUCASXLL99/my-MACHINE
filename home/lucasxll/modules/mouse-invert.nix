@@ -1,7 +1,4 @@
-# home/lucasxll/modules/mouse-invert.nix
-#
-# Scripts que controlam o serviço SISTEMA mouse-invert.service
-# (definido em input-left-handed.nix).
+# Scripts para controlar o serviço mouse-invert (definido em input-left-handed.nix).
 
 { pkgs, ... }:
 
@@ -23,7 +20,6 @@ let
     sudo systemctl restart mouse-invert
     echo "[niri-reset] tela normal, mouse modo=xy"
   '';
-
 in
 {
   home.packages = [ niriMirror niriReset ];

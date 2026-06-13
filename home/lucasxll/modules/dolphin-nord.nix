@@ -1,39 +1,29 @@
-# home/lucasxll/modules/dolphin-nord.nix
-#
-# Tema Nord para Dolphin e todos os apps Qt/KDE
-# - Kvantum com tema Nordic (cores Nord)
-# - Ícones Papirus-Dark
-# - Fonte Inter para UI
-# - Transparência via picom (configurado em picom.nix)
+# Tema Nord para Dolphin e apps Qt/KDE via Kvantum.
 
 { pkgs, ... }:
 
 {
   home.packages = with pkgs; [
-    nordic                              # tema Nord para Kvantum + GTK
-    papirus-icon-theme                  # ícones Papirus-Dark
-    inter                               # fonte UI limpa e moderna
-    libsForQt5.qtstyleplugin-kvantum   # motor de temas Qt
-    libsForQt5.qt5ct                   # configurador Qt5
+    nordic
+    papirus-icon-theme
+    inter
+    libsForQt5.qtstyleplugin-kvantum
+    libsForQt5.qt5ct
   ];
 
-  # Qt usa Kvantum como motor de temas
   qt = {
     enable = true;
     platformTheme.name = "kvantum";
   };
 
-  # Kvantum: seleciona o tema Nordic
   xdg.configFile."Kvantum/kvantum.kvconfig".text = ''
     [General]
     theme=Nordic
   '';
 
-  # Linka o tema Nordic para a pasta do Kvantum
   xdg.configFile."Kvantum/Nordic".source =
     "${pkgs.nordic}/share/Kvantum/Nordic";
 
-  # KDE Globals — afeta Dolphin, Ark, e todos os apps KDE/Qt
   xdg.configFile."kdeglobals".text = ''
     [Icons]
     Theme=Papirus-Dark
@@ -76,7 +66,6 @@
     ForegroundNormal=236,239,244
   '';
 
-  # Dolphin config específico
   xdg.configFile."dolphinrc".text = ''
     [General]
     ShowFullPath=true
@@ -97,21 +86,10 @@
     IconSize=22
   '';
 
-  # GTK também fica Nord (para apps GTK que abrem dentro do Dolphin)
   gtk = {
     enable = true;
-    theme = {
-      name    = "Nordic";
-      package = pkgs.nordic;
-    };
-    iconTheme = {
-      name    = "Papirus-Dark";
-      package = pkgs.papirus-icon-theme;
-    };
-    font = {
-      name    = "Inter";
-      size    = 10;
-      package = pkgs.inter;
-    };
+    theme     = { name = "Nordic";       package = pkgs.nordic; };
+    iconTheme = { name = "Papirus-Dark"; package = pkgs.papirus-icon-theme; };
+    font      = { name = "Inter"; size = 10; package = pkgs.inter; };
   };
 }

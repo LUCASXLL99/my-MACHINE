@@ -1,48 +1,39 @@
-# hosts/nixos/default.nix
-#
-# Ponto de entrada do host. Configurações específicas do host ficam aqui;
-# tudo que é reutilizável vive em modules/nixos/system/.
-
 { config, pkgs, lib, inputs, ... }:
 
 {
   imports = [
-    # ── Sistema (módulos genéricos) ───────────────────────────
     ../../modules/nixos/system/boot.nix
     ../../modules/nixos/system/locale.nix
     ../../modules/nixos/system/network.nix
     ../../modules/nixos/system/users.nix
     ../../modules/nixos/system/packages.nix
 
-    # ── Hardware ─────────────────────────────────────────────
     ../../modules/nixos/hardware/sddm-reflect.nix
     ./hardware-configuration.nix
     ../../modules/nixos/hardware/input-left-handed.nix
     ../../modules/nixos/hardware/bluetooth-audio.nix
     ../../modules/nixos/hardware/kanata-keyboard
 
-    # ── Software ─────────────────────────────────────────────
     ../../modules/nixos/software/no-keyring.nix
     ../../modules/nixos/software/yazi-deps.nix
     ../../modules/nixos/software/niri.nix
     ../../modules/nixos/software/rust-dev.nix
     ../../modules/nixos/software/wallcards.nix
 
-    # ── Externos ─────────────────────────────────────────────
     inputs.home-manager.nixosModules.home-manager
     inputs.stylix.nixosModules.stylix
   ];
 
-  # ── STYLIX ───────────────────────────────────────────────────
+  # ── Stylix ───────────────────────────────────────────────────────────────────
   stylix.base16Scheme = {
-    scheme  = "Tokyo Night Dark";
-    author  = "lucasxll (adaptado de enkia/tokyo-night-vscode-theme)";
-    base00  = "1a1b26"; base01  = "16161e"; base02  = "292e42";
-    base03  = "565f89"; base04  = "9aa5ce"; base05  = "c0caf5";
-    base06  = "cfc9c2"; base07  = "d5d6db"; base08  = "f7768e";
-    base09  = "ff9e64"; base0A  = "e0af68"; base0B  = "9ece6a";
-    base0C  = "73daca"; base0D  = "7aa2f7"; base0E  = "bb9af7";
-    base0F  = "db4b4b";
+    scheme = "Tokyo Night Dark";
+    author = "lucasxll (adaptado de enkia/tokyo-night-vscode-theme)";
+    base00 = "1a1b26"; base01 = "16161e"; base02 = "292e42";
+    base03 = "565f89"; base04 = "9aa5ce"; base05 = "c0caf5";
+    base06 = "cfc9c2"; base07 = "d5d6db"; base08 = "f7768e";
+    base09 = "ff9e64"; base0A = "e0af68"; base0B = "9ece6a";
+    base0C = "73daca"; base0D = "7aa2f7"; base0E = "bb9af7";
+    base0F = "db4b4b";
   };
   stylix.image = config.lib.stylix.pixel "1a1b26";
   stylix.fonts = {
@@ -52,7 +43,7 @@
     sizes     = { terminal = 13; applications = 11; desktop = 11; };
   };
 
-  # ── HOME MANAGER ─────────────────────────────────────────────
+  # ── Home Manager ─────────────────────────────────────────────────────────────
   home-manager = {
     useGlobalPkgs       = true;
     useUserPackages     = true;
@@ -65,29 +56,23 @@
     users.lucasxll = import ../../home/lucasxll/default.nix;
   };
 
-  # ── HARDWARE ─────────────────────────────────────────────────
+  # ── Hardware ─────────────────────────────────────────────────────────────────
   hardware.bluetooth.enable    = true;
   hardware.keyboard.qmk.enable = true;
   services.pulseaudio.enable   = false;
 
-  # ── DISPLAY (X11 para bspwm) ─────────────────────────────────
-  # services.xserver.enable = true é necessário para manter a sessão bspwm (X11)
-  # disponível no SDDM. O layout de teclado é definido aqui para o X11; o niri
-  # usa seu próprio xkb via config.kdl.
-  #
-  # NOTA: displayManager.lightdm.enable = false garante que o xserver NÃO
-  # registre um display-manager secundário. O SDDM (sddm-reflect.nix) é o
-  # único display-manager. Sem isso, em algumas versões do NixOS o xserver
-  # pode registrar o lightdm como fallback e causar conflito no boot.
+  # ── Display (X11 / bspwm) ────────────────────────────────────────────────────
+  # services.xserver.enable mantém a sessão bspwm disponível no SDDM.
+  # lightdm.enable = false: evita que o xserver registre display-manager secundário.
   services.xserver = {
     enable      = true;
     xkb.layout  = "br";
     xkb.variant = "nodeadkeys";
-    windowManager.bspwm.enable = true;
+    windowManager.bspwm.enable    = true;
     displayManager.lightdm.enable = false;
   };
 
-  # ── ÁUDIO ────────────────────────────────────────────────────
+  # ── Áudio ────────────────────────────────────────────────────────────────────
   security.rtkit.enable = true;
   services.pipewire = {
     enable = true; alsa.enable = true;
@@ -95,12 +80,12 @@
     wireplumber.enable = true;
   };
 
-  # ── SERVIÇOS ─────────────────────────────────────────────────
-  services.upower.enable   = true;
-  services.printing.enable = true;
-  services.udisks2.enable  = true;
-  services.gvfs.enable     = true;
-  services.dbus.enable     = true;
+  # ── Serviços ─────────────────────────────────────────────────────────────────
+  services.upower.enable         = true;
+  services.printing.enable       = true;
+  services.udisks2.enable        = true;
+  services.gvfs.enable           = true;
+  services.dbus.enable           = true;
   services.spice-vdagentd.enable = true;
 
   services.logind = {
@@ -122,17 +107,12 @@
       TAG+="systemd", ENV{SYSTEMD_USER_WANTS}="mouse-invert-y.service"
   '';
 
-  # ── PORTAL XDG ───────────────────────────────────────────────
+  # ── Portal XDG ───────────────────────────────────────────────────────────────
   xdg.portal = {
     enable = true;
-    # gtk: FileChooser e Settings (todas as sessões)
-    # wlr: ScreenCast e RemoteDesktop (niri e outros compositores wlroots)
-    extraPortals = [
-      pkgs.xdg-desktop-portal-gtk
-      pkgs.xdg-desktop-portal-wlr
-    ];
+    extraPortals = [ pkgs.xdg-desktop-portal-gtk pkgs.xdg-desktop-portal-wlr ];
     config = {
-      common = { default = [ "gtk" ]; };
+      common.default = [ "gtk" ];
       niri = {
         default                                      = [ "gtk" ];
         "org.freedesktop.impl.portal.ScreenCast"    = [ "wlr" ];
@@ -143,7 +123,7 @@
     };
   };
 
-  # ── ENERGIA ──────────────────────────────────────────────────
+  # ── Energia ──────────────────────────────────────────────────────────────────
   services.power-profiles-daemon.enable = false;
   services.auto-cpufreq = {
     enable = true;
@@ -173,14 +153,14 @@
     };
   };
 
-  # ── VIRTUALIZAÇÃO ────────────────────────────────────────────
+  # ── Virtualização ─────────────────────────────────────────────────────────────
   virtualisation.docker = {
     enable = true;
     daemon.settings.shutdown-timeout = 10;
   };
   systemd.services.docker.serviceConfig.TimeoutStopSec = "15s";
 
-  # ── NIX ──────────────────────────────────────────────────────
+  # ── Nix ───────────────────────────────────────────────────────────────────────
   nix.settings = {
     experimental-features = [ "nix-command" "flakes" ];
     auto-optimise-store   = true;

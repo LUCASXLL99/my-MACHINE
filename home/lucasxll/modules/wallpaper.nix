@@ -1,5 +1,3 @@
-# home/lucasxll/modules/wallpaper.nix
-
 { config, pkgs, ... }:
 
 let
@@ -17,12 +15,10 @@ let
         sleep 0.5
       done
     fi
-
     if [ -z "$WAYLAND_DISPLAY" ]; then
       echo "mpvpaper-launch: WAYLAND_DISPLAY não disponível" >&2
       exit 1
     fi
-
     exec ${pkgs.mpvpaper}/bin/mpvpaper -o 'no-audio loop' '*' ${wallpaperPath}
   '';
 in
@@ -37,10 +33,6 @@ in
     };
     Service = {
       ExecStart             = "${launchScript}";
-      # "on-failure" em vez de "always": evita loop infinito se o arquivo
-      # de wallpaper não existir ou o mpvpaper falhar repetidamente.
-      # "always" pode causar restart storm que compete com o niri por recursos
-      # e em casos extremos derruba a graphical-session.target.
       Restart               = "on-failure";
       RestartSec            = "5s";
       StartLimitIntervalSec = "60";

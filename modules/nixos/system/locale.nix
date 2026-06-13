@@ -1,5 +1,5 @@
-# modules/nixos/system/locale.nix
 { ... }:
+
 {
   time.timeZone      = "America/Belem";
   i18n.defaultLocale = "en_US.UTF-8";
