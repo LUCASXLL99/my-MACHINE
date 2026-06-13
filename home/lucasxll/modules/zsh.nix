@@ -35,8 +35,7 @@
       wserve = "python3 -m http.server 8080";
       wwatch = ''cargo watch -s "wasm-pack build --target web"'';
       wclean = "rm -rf pkg/ target/wasm32-unknown-unknown/";
-      # Rode wasm-setup uma vez por instalação nova para adicionar o target wasm32
-      wasm-setup = "rustup update stable && rustup default stable && rustup target add wasm32-unknown-unknown";
+      wasm-setup = "rustup update stable && rustup default stable && rustup target add wasm32-unknown-unknown";  # rodar uma vez por instalação
 
       audit  = "cargo audit";
       expand = "cargo expand";

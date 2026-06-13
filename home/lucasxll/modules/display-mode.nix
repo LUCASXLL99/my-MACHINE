@@ -1,17 +1,15 @@
 # home/lucasxll/modules/display-mode.nix
-# f-mirror / f-reset — alterna perfil espelhado↔normal.
-#
-# Usa xrandr (X11) para espelhar o display — funciona na sessão bspwm e
-# também em niri via xwayland-satellite (xrandr afeta apenas o display virtual).
-# Para espelhar o output Wayland no niri, usar wlr-randr ou niri msg output.
+# DESATIVADO — não importado em default.nix.
+# f-mirror / f-reset para alternar modo espelhado↔normal via xrandr (X11).
+# No niri, usar niri-mirror / niri-reset (mouse-invert.nix) que operam via
+# 'niri msg output' e reiniciam o mouse-invert corretamente.
 
 { config, pkgs, lib, ... }:
 
 let
   stateFile = "${config.home.homeDirectory}/.config/lucasxll/display-mode";
-
-  xrandr = "${pkgs.xorg.xrandr}/bin/xrandr";
-  awk    = "${pkgs.gawk}/bin/awk";
+  xrandr    = "${pkgs.xorg.xrandr}/bin/xrandr";
+  awk       = "${pkgs.gawk}/bin/awk";
 
   xrandrApply = reflect: ''
     for _o in $(${xrandr} | ${awk} '/ connected/{print $1}'); do
@@ -19,23 +17,17 @@ let
     done
   '';
 
-  applyMirror = xrandrApply "x";
-  applyNormal = xrandrApply "normal";
-
-  startupScript = pkgs.writeShellScript "display-mode-startup" ''
+  applyMirror    = xrandrApply "x";
+  applyNormal    = xrandrApply "normal";
+  startupScript  = pkgs.writeShellScript "display-mode-startup" ''
     sleep 2
     _MODE=$(cat "${stateFile}" 2>/dev/null || echo "normal")
     case "$_MODE" in
       mirror) ${applyMirror} ;;
       normal) ${applyNormal} ;;
-      *)
-        echo "display-mode: valor inválido '$_MODE', usando normal" >&2
-        ${applyNormal}
-        ;;
+      *) echo "display-mode: valor inválido '$_MODE', usando normal" >&2; ${applyNormal} ;;
     esac
-    unset _MODE
   '';
-
 in
 {
   home.packages = [
@@ -54,24 +46,12 @@ in
   ];
 
   home.file.".xprofile".text = ''
-    # display-mode — gerado pelo Home Manager, não editar manualmente
-    _DM_STATE_FILE="${stateFile}"
-    _DM_MODE=$(cat "$_DM_STATE_FILE" 2>/dev/null || echo "normal")
-
+    _DM_MODE=$(cat "${stateFile}" 2>/dev/null || echo "normal")
     case "$_DM_MODE" in
-      mirror)
-        export GTK_TEXT_DIR=rtl
-        export QT_LAYOUT_DIRECTION=RTL
-        export LANGUAGE="''${LANGUAGE:-en}:ar"
-        ;;
-      normal)
-        export GTK_TEXT_DIR=ltr
-        export QT_LAYOUT_DIRECTION=LTR
-        export LANGUAGE="''${LANGUAGE:-en}"
-        ;;
+      mirror) export GTK_TEXT_DIR=rtl; export QT_LAYOUT_DIRECTION=RTL; export LANGUAGE="''${LANGUAGE:-en}:ar" ;;
+      normal) export GTK_TEXT_DIR=ltr; export QT_LAYOUT_DIRECTION=LTR; export LANGUAGE="''${LANGUAGE:-en}" ;;
     esac
-
-    unset _DM_STATE_FILE _DM_MODE
+    unset _DM_MODE
   '';
 
   xsession.profileExtra = ''
@@ -101,13 +81,4 @@ in
     };
     Install.WantedBy = [ "graphical-session.target" ];
   };
-
-  xdg.configFile."autostart/display-mode.desktop".text = ''
-    [Desktop Entry]
-    Type=Application
-    Name=Display Mode
-    Exec=${startupScript}
-    Hidden=false
-    X-GNOME-Autostart-enabled=true
-  '';
 }

@@ -1,27 +1,22 @@
 # modules/nixos/software/rust-dev.nix
-# Ferramentas Rust: nativas, web/backend, WASM, banco de dados.
-
+# Ferramentas de sistema para desenvolvimento Rust: compiladores nativos,
+# bancos de dados, cache de compilação e utilitários de build.
+#
+# sccache: instalado aqui; RUSTC_WRAPPER configurado em cargo-config.nix.
 { pkgs, pkgs-unstable, ... }:
 
 {
   environment.sessionVariables = {
-    LIBCLANG_PATH = "${pkgs.libclang.lib}/lib";
-
-    PQ_LIB_DIR = "${pkgs.postgresql.lib}/lib";
-
+    LIBCLANG_PATH      = "${pkgs.libclang.lib}/lib";
+    PQ_LIB_DIR         = "${pkgs.postgresql.lib}/lib";
     SCCACHE_CACHE_SIZE = "10G";
   };
 
   environment.systemPackages = with pkgs; [
-    cmake
-    ninja
-    clang
-    libclang
+    cmake ninja clang libclang
     perl        # openssl-sys usa perl no build.rs
 
-    postgresql
-    redis
-    sqlite
+    postgresql redis sqlite
     (diesel-cli.override {
       sqliteSupport     = true;
       postgresqlSupport = true;
@@ -29,15 +24,11 @@
     })
 
     sccache
-
     bacon
-
-    protobuf
-    grpcurl
+    protobuf grpcurl
 
     pkgs-unstable.cargo-deny
     cargo-udeps
     cargo-tarpaulin
   ];
-
 }

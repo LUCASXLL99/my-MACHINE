@@ -1,14 +1,13 @@
 # modules/nixos/software/niri.nix
 # Niri via niri-flake + xwayland-satellite.
 #
-# Fix niri 25.08: o postInstall original executa '$out/bin/niri completions bash'
-# para gerar shell completions. O niri tenta inicializar como compositor
-# (seat/libinput) e crasha no sandbox do Nix com exit 2.
-# Solução: overrideAttrs removendo as completions e o output 'doc'.
+# Override necessário: o postInstall original executa 'niri completions bash'
+# dentro do sandbox Nix (sem seat/libinput) → exit 2. Solução: remover o
+# passo de completions e o output 'doc', instalar só os arquivos essenciais.
 #
-# Fix autologin: o niri-flake pode registar pkgs.niri (não-overridado) em
-# sessionPackages, resultando num desktops buildEnv sem niri.desktop.
-# Solução: forçar sessionPackages a usar o mesmo niriPkg overridado.
+# sessionPackages com mkBefore: garante que o niri.desktop do niriPkg
+# (overridado) vença colisões no buildEnv do SDDM sobre o pkgs.niri original
+# que o niri-flake possa registrar.
 { pkgs, lib, ... }:
 let
   niriPkg = pkgs.niri.overrideAttrs (_: {
@@ -27,15 +26,9 @@ in
     package = niriPkg;
   };
 
-  # Garante que o desktops buildEnv do SDDM tenha o niri.desktop correto.
-  # O niri-flake pode registrar pkgs.niri (sem override) em sessionPackages;
-  # mkAfter adiciona o niriPkg correto no final — o buildEnv com
-  # ignoreCollisions irá usar o niri.desktop deste pacote.
-  # mkBefore: niriPkg fica primeiro na lista do buildEnv — ganha colisões
-  # sobre qualquer pkgs.niri que o niri-flake possa adicionar.
   services.displayManager.sessionPackages = lib.mkBefore [ niriPkg ];
 
   environment.systemPackages                   = [ pkgs.xwayland-satellite ];
   environment.sessionVariables.NIXOS_OZONE_WL = "1";
-  # Portais XDG declarados em default.nix (xdg.portal block) para manter tudo junto.
+  # Portais XDG declarados em default.nix (xdg.portal) para manter tudo junto.
 }

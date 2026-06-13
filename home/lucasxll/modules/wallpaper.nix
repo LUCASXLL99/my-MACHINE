@@ -1,4 +1,7 @@
 # home/lucasxll/modules/wallpaper.nix
+# mpvpaper como wallpaper animado (Wayland). Gerenciado via systemd user.
+# O pacote também é declarado em wallcards.nix (system) para o plugin Wallcards
+# do noctalia — a duplicata é intencional (contextos diferentes).
 
 { config, pkgs, ... }:
 
@@ -7,7 +10,7 @@ let
 
   launchScript = pkgs.writeShellScript "mpvpaper-launch" ''
     if [ -z "$WAYLAND_DISPLAY" ]; then
-      XDG_RUNTIME_DIR="''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+      XDG_RUNTIME_DIR="${''}${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
       for _i in $(seq 1 30); do
         for _f in "$XDG_RUNTIME_DIR"/wayland-?; do
           [ -S "$_f" ] || continue
@@ -18,17 +21,14 @@ let
       done
     fi
 
-    if [ -z "$WAYLAND_DISPLAY" ]; then
-      echo "mpvpaper-launch: WAYLAND_DISPLAY não disponível" >&2
-      exit 1
-    fi
+    [ -z "$WAYLAND_DISPLAY" ] && {
+      echo "mpvpaper-launch: WAYLAND_DISPLAY não disponível" >&2; exit 1
+    }
 
     exec ${pkgs.mpvpaper}/bin/mpvpaper -o 'no-audio loop' '*' ${wallpaperPath}
   '';
 in
 {
-  home.packages = [ pkgs.mpvpaper ];
-
   systemd.user.services.mpvpaper = {
     Unit = {
       Description = "mpvpaper — live wallpaper Wayland";
@@ -37,10 +37,6 @@ in
     };
     Service = {
       ExecStart             = "${launchScript}";
-      # "on-failure" em vez de "always": evita loop infinito se o arquivo
-      # de wallpaper não existir ou o mpvpaper falhar repetidamente.
-      # "always" pode causar restart storm que compete com o niri por recursos
-      # e em casos extremos derruba a graphical-session.target.
       Restart               = "on-failure";
       RestartSec            = "5s";
       StartLimitIntervalSec = "60";

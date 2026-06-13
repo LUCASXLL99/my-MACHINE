@@ -1,16 +1,15 @@
 # home/lucasxll/modules/nightlight.nix
+# DESATIVADO — não importado em default.nix.
+# O noctalia-shell gerencia luz noturna nativamente (nightLight em noctalia.nix).
+# Manter aqui como fallback caso o noctalia seja removido.
 #
-# Luz noturna via wlsunset (Wayland).
-# Localização: Fortaleza, CE  (-3.7 / -38.5)
-#
-# NÃO usar ConditionEnvironment=WAYLAND_DISPLAY: é avaliado antes do niri
-# exportar WAYLAND_DISPLAY ao bus → serviço skipado silenciosamente.
-# Fix: After+BindsTo=niri.service + ExecStartPre aguarda WAYLAND_DISPLAY.
+# Para reativar: adicionar ./modules/nightlight.nix em home/lucasxll/default.nix
+# e desativar noctalia.settings.nightLight.enabled.
 
 { pkgs, ... }:
 
 let
-  lat = "-3.7";
+  lat = "-3.7";   # Fortaleza, CE
   lon = "-38.5";
 in
 {
@@ -34,10 +33,10 @@ in
           fi
           sleep 0.5
         done
-        echo "wlsunset: WAYLAND_DISPLAY nao disponivel em 10s" >&2
+        echo "wlsunset: WAYLAND_DISPLAY nao disponivel" >&2
         exit 1
       '';
-      ExecStart = "${pkgs.wlsunset}/bin/wlsunset -l ${lat} -L ${lon} -t 2500 -T 6500 -g 0.8";
+      ExecStart  = "${pkgs.wlsunset}/bin/wlsunset -l ${lat} -L ${lon} -t 2500 -T 6500 -g 0.8";
       Restart    = "on-failure";
       RestartSec = "5s";
     };

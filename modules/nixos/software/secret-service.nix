@@ -1,8 +1,12 @@
 # modules/nixos/software/secret-service.nix
-# gnome-keyring como Secret Service daemon — ativar em default.nix se necessário.
+# DESATIVADO — não importado em hosts/nixos/default.nix.
+# gnome-keyring como Secret Service daemon (alternativa ao KWallet).
 #
 # ATENÇÃO: security.pam.services.sddm.enableGnomeKeyring = true pode
-# travar o fluxo de autologin do SDDM. Manter false enquanto autologin estiver ativo.
+# travar o autologin do SDDM. Manter false enquanto autologin estiver ativo.
+#
+# Para ativar: adicionar o import em hosts/nixos/default.nix e remover
+# modules/nixos/software/no-keyring.nix (conflito de kwalletrc).
 
 { pkgs, ... }:
 
