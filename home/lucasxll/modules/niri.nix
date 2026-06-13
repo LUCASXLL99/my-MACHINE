@@ -18,7 +18,6 @@
     wl-clipboard  # wl-copy / wl-paste
     wlr-randr     # controle de output (niri-mirror / niri-reset)
     xorg.xauth    # geração de cookie MIT-MAGIC-COOKIE para xwayland-satellite
-    xdotool       # leitura de posição do cursor via X11 (hot-corner.nix)
     # Fallbacks — descomentar SOMENTE se noctalia não subir:
     # waybar mako fuzzel swww hyprlock swayidle
   ];

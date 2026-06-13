@@ -2,8 +2,8 @@
 #
 # Detecta o canto superior direito e chama 'niri msg action toggle-overview'.
 #
-# Usa polling da posição absoluta do cursor via 'xdotool getmouselocation'
-# (Xwayland/X11), já que o niri não expõe cursor-position via IPC.
+# Usa 'niri msg event-stream' (Wayland nativo) para receber eventos de
+# movimento do cursor em tempo real — sem polling, sem dessincronias de escala.
 
 { pkgs, ... }:
 
@@ -16,7 +16,6 @@ import sys, time, subprocess, os, glob, json
 
 THRESHOLD = int(os.environ.get("HOT_CORNER_THRESHOLD", "8"))
 COOLDOWN  = float(os.environ.get("HOT_CORNER_COOLDOWN", "1.5"))
-POLL_HZ   = float(os.environ.get("HOT_CORNER_POLL_HZ", "60"))
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -27,14 +26,19 @@ def niri_socket():
     hits = glob.glob(f"/run/user/{os.getuid()}/niri.*.sock")
     return hits[0] if hits else None
 
-def niri_cmd(*args):
+def niri_env():
     sock = niri_socket()
-    env  = {**os.environ, **({"NIRI_SOCKET": sock} if sock else {})}
+    env  = {**os.environ}
+    if sock:
+        env["NIRI_SOCKET"] = sock
+    return env
+
+def niri_cmd(*args):
     return subprocess.run(["niri", "msg", *args], capture_output=True, text=True,
-                          timeout=3, env=env)
+                          timeout=3, env=niri_env())
 
 def get_screen_dims():
-    """Detecta resolução do output primário via niri IPC."""
+    """Detecta resolução lógica do output primário via niri IPC."""
     try:
         r = niri_cmd("-j", "outputs")
         for out in json.loads(r.stdout).values():
@@ -46,43 +50,48 @@ def get_screen_dims():
         print(f"[hot-corner] fallback 1920×1080 ({e})", flush=True)
     return 1920, 1080
 
-def get_cursor_pos():
-    """Lê posição absoluta do cursor via xdotool (Xwayland)."""
-    try:
-        env = {**os.environ, "DISPLAY": os.environ.get("DISPLAY", ":1")}
-        r = subprocess.run(
-            ["xdotool", "getmouselocation", "--shell"],
-            capture_output=True, text=True, timeout=3, env=env
-        )
-        if r.returncode != 0:
-            return None
-        vals = dict(line.split("=", 1) for line in r.stdout.splitlines() if "=" in line)
-        return float(vals["X"]), float(vals["Y"])
-    except Exception:
-        return None
-
 def trigger():
     niri_cmd("action", "toggle-overview")
 
-# ── main ──────────────────────────────────────────────────────────────────────
+# ── main: assina event-stream ────────────────────────────────────────────────
 
 W, H = get_screen_dims()
-print(f"[hot-corner] resolução lógica: {W}×{H}, threshold: {THRESHOLD}px, poll: {POLL_HZ}Hz", flush=True)
+print(f"[hot-corner] resolução lógica: {W}×{H}, threshold: {THRESHOLD}px", flush=True)
 
 last_trigger = 0.0
-interval     = 1.0 / POLL_HZ
 
-while True:
-    pos = get_cursor_pos()
-    if pos is not None:
-        cx, cy = pos
-        if cx >= W - THRESHOLD and cy <= THRESHOLD:
-            now = time.monotonic()
-            if now - last_trigger >= COOLDOWN:
-                print(f"[hot-corner] trigger! cursor=({cx:.0f},{cy:.0f})", flush=True)
-                trigger()
-                last_trigger = now
-    time.sleep(interval)
+proc = subprocess.Popen(
+    ["niri", "msg", "-j", "event-stream"],
+    stdout=subprocess.PIPE, text=True, env=niri_env()
+)
+
+for raw in proc.stdout:
+    raw = raw.strip()
+    if not raw:
+        continue
+    try:
+        ev = json.loads(raw)
+    except json.JSONDecodeError:
+        continue
+
+    # Evento de movimento do cursor: {"PointerMotionAbsolute":{"x":…,"y":…}}
+    # ou {"PointerMotion":{"dx":…,"dy":…}} — usamos apenas o absoluto
+    pos = None
+    if isinstance(ev, dict):
+        pma = ev.get("PointerMotionAbsolute")
+        if pma:
+            pos = (float(pma["x"]), float(pma["y"]))
+
+    if pos is None:
+        continue
+
+    cx, cy = pos
+    if cx >= W - THRESHOLD and cy <= THRESHOLD:
+        now = time.monotonic()
+        if now - last_trigger >= COOLDOWN:
+            print(f"[hot-corner] trigger! cursor=({cx:.0f},{cy:.0f})", flush=True)
+            trigger()
+            last_trigger = now
 PYEOF
   '';
 in
