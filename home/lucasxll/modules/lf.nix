@@ -72,7 +72,7 @@
         [ "$ans" = "s" ] && rm -rf -- $fx
     }
 
-    cmd trash ''${ set -f; trashy "$fx" }
+    cmd trash ${ set -f; trashy "$fx" }
     map <delete> trash
     map D delete
 

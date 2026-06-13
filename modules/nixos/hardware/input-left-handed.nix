@@ -37,22 +37,27 @@
     mouseInvert = pkgs.writers.writePython3Bin "mouse-invert" {
       libraries = [ pkgs.python3Packages.evdev ];
     } ''
-      import sys, threading, time, evdev
+      import sys
+      import threading
+      import time
+
+      import evdev
       from evdev import ecodes, UInput
 
-      mode  = sys.argv[1] if len(sys.argv) > 1 else "xy"
+      mode = sys.argv[1] if len(sys.argv) > 1 else "xy"
       INV_X = "x" in mode
       INV_Y = "y" in mode
       print(f"[mouse-invert] modo={mode} inv_x={INV_X} inv_y={INV_Y}", flush=True)
 
-      active      = {}
+      active = {}
       active_lock = threading.Lock()
+
 
       def process(path):
           try:
-              src  = evdev.InputDevice(path)
+              src = evdev.InputDevice(path)
               caps = src.capabilities()
-              rel  = caps.get(ecodes.EV_REL, [])
+              rel = caps.get(ecodes.EV_REL, [])
               if ecodes.REL_X not in rel or ecodes.REL_Y not in rel:
                   return
               if "[inv]" in src.name:
@@ -62,9 +67,12 @@
               print(f"[mouse-invert] grabbing: {src.name} ({src.path})", flush=True)
               for ev in src.read_loop():
                   if ev.type == ecodes.EV_REL:
-                      if   ev.code == ecodes.REL_X and INV_X: dst.write(ev.type, ev.code, -ev.value)
-                      elif ev.code == ecodes.REL_Y and INV_Y: dst.write(ev.type, ev.code, -ev.value)
-                      else:                                    dst.write_event(ev)
+                      if ev.code == ecodes.REL_X and INV_X:
+                          dst.write(ev.type, ev.code, -ev.value)
+                      elif ev.code == ecodes.REL_Y and INV_Y:
+                          dst.write(ev.type, ev.code, -ev.value)
+                      else:
+                          dst.write_event(ev)
                   else:
                       dst.write_event(ev)
                   if ev.type == ecodes.EV_SYN:
@@ -72,35 +80,47 @@
           except Exception as e:
               print(f"[mouse-invert] {path}: {e}", file=sys.stderr, flush=True)
           finally:
-              with active_lock: active.pop(path, None)
-              try: src.ungrab()
-              except Exception: pass
+              with active_lock:
+                  active.pop(path, None)
+              try:
+                  src.ungrab()
+              except Exception:
+                  pass
+
 
       def watch_loop():
           while True:
               try:
                   for path in evdev.list_devices():
                       with active_lock:
-                          if path in active: continue
+                          if path in active:
+                              continue
                       try:
-                          d    = evdev.InputDevice(path)
+                          d = evdev.InputDevice(path)
                           caps = d.capabilities()
-                          rel  = caps.get(ecodes.EV_REL, [])
-                          if ecodes.REL_X in rel and ecodes.REL_Y in rel and "[inv]" not in d.name:
+                          rel = caps.get(ecodes.EV_REL, [])
+                          if (ecodes.REL_X in rel and ecodes.REL_Y in rel
+                                  and "[inv]" not in d.name):
                               d.close()
                               with active_lock:
-                                  t = threading.Thread(target=process, args=(path,), daemon=True)
+                                  t = threading.Thread(
+                                      target=process, args=(path,), daemon=True
+                                  )
                                   active[path] = t
                               t.start()
-                      except Exception: pass
+                      except Exception:
+                          pass
               except Exception as e:
                   print(f"[mouse-invert] watch: {e}", file=sys.stderr, flush=True)
               time.sleep(2)
 
+
       threading.Thread(target=watch_loop, daemon=True).start()
       try:
-          while True: time.sleep(60)
-      except KeyboardInterrupt: pass
+          while True:
+              time.sleep(60)
+      except KeyboardInterrupt:
+          pass
     '';
   in [ mouseInvert ];
 
