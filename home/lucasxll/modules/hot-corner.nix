@@ -2,24 +2,21 @@
 #
 # Detecta o canto superior direito e chama 'niri msg action toggle-overview'.
 #
-# Melhorias vs versão anterior:
-#   - Dimensões detectadas via 'niri msg outputs' em vez de hardcoded 1920×1080
-#   - Lê /dev/input/event* (evdev, mais confiável com mice USB HID modernos)
-#     com fallback automático para /dev/input/mice (PS/2 emulado)
-#   - Redetecta o device se ele for removido/plugado (ex: mouse USB reconectado)
-#   - Configurável via variáveis de ambiente (HOT_CORNER_THRESHOLD, COOLDOWN)
+# Usa polling da posição absoluta do cursor via 'niri msg cursor-position'
+# (IPC nativo do niri), evitando dessincronia por acúmulo de deltas relativos.
 
 { pkgs, ... }:
 
 let
-  python = pkgs.python3.withPackages (ps: [ ps.evdev ]);
+  python = pkgs.python3;
 
   script = pkgs.writeShellScriptBin "niri-hot-corner-right" ''
     exec ${python}/bin/python3 - << 'PYEOF'
-import sys, time, subprocess, os, glob, json, select
+import sys, time, subprocess, os, glob, json
 
 THRESHOLD = int(os.environ.get("HOT_CORNER_THRESHOLD", "8"))
 COOLDOWN  = float(os.environ.get("HOT_CORNER_COOLDOWN", "1.5"))
+POLL_HZ   = float(os.environ.get("HOT_CORNER_POLL_HZ", "60"))
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -43,83 +40,48 @@ def get_screen_dims():
         for out in json.loads(r.stdout).values():
             m = out.get("current_mode") or {}
             if m.get("width") and m.get("height"):
-                return m["width"], m["height"]
+                scale = out.get("scale") or 1.0
+                return int(m["width"] / scale), int(m["height"] / scale)
     except Exception as e:
         print(f"[hot-corner] fallback 1920×1080 ({e})", flush=True)
     return 1920, 1080
 
+def get_cursor_pos():
+    """Lê posição absoluta do cursor via niri IPC (lógica, após scale)."""
+    try:
+        r = niri_cmd("-j", "cursor-position")
+        if r.returncode != 0:
+            return None
+        data = json.loads(r.stdout)
+        # retorna {"x": float, "y": float} ou null se cursor fora de output
+        if data is None:
+            return None
+        return float(data["x"]), float(data["y"])
+    except Exception:
+        return None
+
 def trigger():
     niri_cmd("action", "toggle-overview")
-
-# ── device reader ─────────────────────────────────────────────────────────────
-
-def open_evdev_mouse():
-    """Tenta abrir o primeiro mouse via evdev (mais confiável com USB HID)."""
-    try:
-        import evdev
-        for path in evdev.list_devices():
-            try:
-                dev  = evdev.InputDevice(path)
-                caps = dev.capabilities()
-                rel  = caps.get(evdev.ecodes.EV_REL, [])
-                if evdev.ecodes.REL_X in rel and evdev.ecodes.REL_Y in rel:
-                    print(f"[hot-corner] evdev: {dev.name} ({path})", flush=True)
-                    return ("evdev", dev)
-            except Exception:
-                pass
-    except ImportError:
-        pass
-    return None
-
-def open_mice_fallback():
-    """Fallback: /dev/input/mice (protocolo PS/2 emulado)."""
-    try:
-        f = open("/dev/input/mice", "rb")
-        print("[hot-corner] fallback: /dev/input/mice", flush=True)
-        return ("mice", f)
-    except PermissionError:
-        print("[hot-corner] sem acesso a /dev/input/mice — "
-              "adicione o usuário ao grupo 'input'", flush=True)
-        sys.exit(1)
 
 # ── main ──────────────────────────────────────────────────────────────────────
 
 W, H = get_screen_dims()
-print(f"[hot-corner] resolução: {W}×{H}, threshold: {THRESHOLD}px", flush=True)
+print(f"[hot-corner] resolução lógica: {W}×{H}, threshold: {THRESHOLD}px, poll: {POLL_HZ}Hz", flush=True)
 
-x, y         = W // 2, H // 2
 last_trigger = 0.0
+interval     = 1.0 / POLL_HZ
 
-source = open_evdev_mouse() or open_mice_fallback()
-kind   = source[0]
-dev    = source[1]
-
-if kind == "evdev":
-    import evdev
-    for event in dev.read_loop():
-        if event.type == evdev.ecodes.EV_REL:
-            if   event.code == evdev.ecodes.REL_X: x = max(0, min(W - 1, x + event.value))
-            elif event.code == evdev.ecodes.REL_Y: y = max(0, min(H - 1, y + event.value))
-            if x >= W - THRESHOLD and y <= THRESHOLD:
-                now = time.monotonic()
-                if now - last_trigger >= COOLDOWN:
-                    trigger()
-                    last_trigger = now
-else:
-    import struct
-    while True:
-        data = dev.read(3)
-        if len(data) < 3:
-            continue
-        dx = struct.unpack("b", bytes([data[1]]))[0]
-        dy = struct.unpack("b", bytes([data[2]]))[0]
-        x  = max(0, min(W - 1, x + dx))
-        y  = max(0, min(H - 1, y - dy))
-        if x >= W - THRESHOLD and y <= THRESHOLD:
+while True:
+    pos = get_cursor_pos()
+    if pos is not None:
+        cx, cy = pos
+        if cx >= W - THRESHOLD and cy <= THRESHOLD:
             now = time.monotonic()
             if now - last_trigger >= COOLDOWN:
+                print(f"[hot-corner] trigger! cursor=({cx:.0f},{cy:.0f})", flush=True)
                 trigger()
                 last_trigger = now
+    time.sleep(interval)
 PYEOF
   '';
 in
