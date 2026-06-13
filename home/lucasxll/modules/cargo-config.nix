@@ -1,7 +1,3 @@
-# home/lucasxll/modules/cargo-config.nix
-# Configuração global do Cargo: sccache como rustc-wrapper (instalado em rust-dev.nix),
-# mold como linker nativo e lld para WASM.
-
 { pkgs, ... }:
 {
   home.file.".cargo/config.toml".text = ''

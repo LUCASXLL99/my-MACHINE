@@ -25,16 +25,13 @@
   };
 
   environment.sessionVariables = {
-    # _JAVA_AWT: setado aqui para X11/bspwm; niri sobrescreve no seu environment {}
     _JAVA_AWT_WM_NONREPARENTING = "1";
     OPENSSL_DIR     = "${pkgs.openssl.dev}";
     OPENSSL_LIB_DIR = "${pkgs.openssl.out}/lib";
+    PATH            = "$HOME/.cargo/bin:$PATH";
     WASM_OPT        = "${pkgs.binaryen}/bin/wasm-opt";
-    # PATH com cargo: use ~/.cargo/bin via cargo-config.nix + rustup;
-    # sessionVariables não expande $HOME — evitar aqui.
   };
 
-  # Paths para service menus do Dolphin (KIO 5 → necessário sem KDE completo)
   environment.pathsToLink = [
     "/share/kservices5"
     "/share/kservices5/ServiceMenus"
@@ -46,15 +43,13 @@
     vim git wget htop fastfetch
     zip unzip
 
-    # Wayland/display
-    wl-mirror
-    wlr-randr
-
-    # Áudio/mídia
-    pavucontrol blueman
+    grim slurp swappy
+    wl-clipboard cliphist
+    wl-mirror wlr-randr
+    playerctl pavucontrol blueman
     xdg-utils libnotify
+    wezterm
 
-    # Apps
     vivaldi obsidian onlyoffice-bin_latest gnome-disk-utility
     rofi
     kdePackages.dolphin kdePackages.ark
@@ -105,7 +100,7 @@
     qmk qmk-udev-rules qmk_hid via vial kanata-with-cmd
     sxhkd brightnessctl
 
-    libnotify
+    auto-cpufreq libnotify
     xwinwrap mpv yt-dlp
 
     kdePackages.qtwayland

@@ -2,11 +2,14 @@
 # SDDM Qt6 com sddm-astronaut-theme.
 #
 # kdePackages.qtmultimedia em extraPackages é obrigatório (bug nixpkgs #390251).
-# wayland.enable = true (padrão) — o SDDM Qt6 usa compositor interno próprio.
+# wayland.enable = true (padrão) — o SDDM Qt6 usa compositor interno próprio,
+# não precisa do kwin. Necessário para o autologin conseguir iniciar sessões
+# Wayland (como niri) corretamente.
 #
 # Testar sem reiniciar:
 #   sudo -u sddm sddm-greeter-qt6 --test-mode \
 #     --theme /run/current-system/sw/share/sddm/themes/sddm-astronaut-theme
+
 { pkgs, ... }:
 
 let
@@ -40,8 +43,13 @@ in
 
       Autologin.User    = "lucasxll";
       Autologin.Session = "niri";
-      # Relogin = false: com true, qualquer saída do niri (crash, race condition)
-      # dispara autologin imediato — aparece como reinício do display-manager.
+      # IMPORTANTE: Relogin = false.
+      # Com true, qualquer encerramento da sessão niri (crash, exit rápido,
+      # race condition na inicialização) faz o SDDM relançar autologin
+      # imediatamente — produz o efeito visual de "sudo systemctl restart
+      # display-manager": tela preta + flash de SDDM + niri subindo de novo.
+      # Com false, se a sessão encerrar inesperadamente o SDDM mostra a tela
+      # de login normalmente em vez de entrar em loop.
       Autologin.Relogin = false;
     };
   };

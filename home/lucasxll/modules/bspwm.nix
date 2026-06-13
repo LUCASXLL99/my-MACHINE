@@ -1,16 +1,17 @@
 # home/lucasxll/modules/bspwm.nix
-# Sessão X11 com bspwm. Os serviços bspwm-* não têm WantedBy — são iniciados
-# explicitamente pelo startupPrograms do bspwm e não interferem no niri.
 
 { config, pkgs, lib, ... }:
 
 {
+  # Pacotes exclusivos da sessão X11 (só são iniciados se fizer login no bspwm)
   home.packages = with pkgs; [
     networkmanagerapplet
     copyq
     feh
+    mpvpaper
     flameshot
     xwinwrap
+    playerctl
   ];
 
   xsession.windowManager.bspwm = {
@@ -39,41 +40,51 @@
       "copyq"           = { state = "floating"; };
       "Blueman-manager" = { state = "floating"; };
     };
+    # startupPrograms: apenas o que não pode ser um serviço systemd.
+    # Daemons estáveis (sxhkd, picom, dunst, etc.) vivem em
+    # systemd.user.services abaixo — reiniciam automaticamente se caírem.
     startupPrograms = [
       "bspc monitor -d 1 2 3 4 5 6 7 8 9"
 
-      # Daemons via systemd (restart automático)
+      # Inicia os daemons via systemd (restart automático se caírem)
       "systemctl --user start bspwm-sxhkd bspwm-picom bspwm-dunst bspwm-copyq bspwm-mpris-proxy bspwm-nm-applet bspwm-blueman"
 
-      # Matriz de espelho em todos os inputs (X11)
+      # Aplica matriz de espelho em todos os dispositivos de input (X11)
       "sleep 2; for id in $(${pkgs.xorg.xinput}/bin/xinput list --id-only 2>/dev/null); do ${pkgs.xorg.xinput}/bin/xinput set-prop \"$id\" 'Coordinate Transformation Matrix' -1 0 1 0 -1 1 0 0 1 2>/dev/null || true; done"
 
-      # Wallpaper (lógica multi-fonte)
+      # Wallpaper (lógica com múltiplas fontes — fica aqui por ora)
       "pkill mpvpaper; pkill feh; if [ -f ${config.home.homeDirectory}/Videos/wallpapers/wallpaper.mp4 ]; then mpvpaper -o 'no-audio loop' '*' ${config.home.homeDirectory}/Videos/wallpapers/wallpaper.mp4; elif ls ${config.home.homeDirectory}/Pictures/wallpapers/* 2>/dev/null; then feh --no-fehbg --bg-fill --randomize ${config.home.homeDirectory}/Pictures/wallpapers; else feh --no-fehbg --bg-color '#0e1117'; fi"
 
-      # Polybar (por monitor)
+      # Polybar (por monitor — shell expansion necessária)
       "pkill polybar; sleep 0.5; for m in $(xrandr --query | awk '/ connected/{print $1}'); do MONITOR=$m polybar main --config=${config.xdg.configHome}/polybar/config.ini & done"
     ];
   };
 
+  # ── Serviços systemd para daemons do bspwm ──────────────────────────────────
+  # Condicionados a DESKTOP_SESSION=bspwm: não interferem na sessão niri.
+  # Os serviços bspwm-* NÃO têm WantedBy: não iniciam automaticamente.
+  # São iniciados explicitamente pelo startupPrograms do bspwm abaixo,
+  # e reiniciados automaticamente pelo systemd se caírem (Restart=on-failure).
   systemd.user.services = let
     bspwmOnly = {
-      Unit.After  = [ "graphical-session.target" ];
-      Unit.PartOf = [ "graphical-session.target" ];
+      Unit.After       = [ "graphical-session.target" ];
+      Unit.PartOf      = [ "graphical-session.target" ];
+      # Sem WantedBy: evita iniciar em niri ou outras sessões.
+      # O bspwm chama 'systemctl --user start bspwm-*' via startupPrograms.
     };
   in {
     bspwm-sxhkd = lib.recursiveUpdate bspwmOnly {
       Unit.Description = "sxhkd hotkey daemon (bspwm)";
       Service = {
-        ExecStart  = "${pkgs.sxhkd}/bin/sxhkd -c ${config.xdg.configHome}/sxhkd/sxhkdrc";
-        Restart    = "on-failure"; RestartSec = "1s";
+        ExecStart = "${pkgs.sxhkd}/bin/sxhkd -c ${config.xdg.configHome}/sxhkd/sxhkdrc";
+        Restart   = "on-failure"; RestartSec = "1s";
       };
     };
     bspwm-picom = lib.recursiveUpdate bspwmOnly {
       Unit.Description = "picom compositor (bspwm)";
       Service = {
-        ExecStart  = "${pkgs.picom}/bin/picom --config ${config.xdg.configHome}/picom/picom.conf";
-        Restart    = "on-failure"; RestartSec = "2s";
+        ExecStart = "${pkgs.picom}/bin/picom --config ${config.xdg.configHome}/picom/picom.conf";
+        Restart   = "on-failure"; RestartSec = "2s";
       };
     };
     bspwm-dunst = lib.recursiveUpdate bspwmOnly {
@@ -182,20 +193,18 @@
 
     # Brilho
     XF86MonBrightnessUp
-      brightnessctl set 5%+
+      brightnessctl set +10%
     XF86MonBrightnessDown
-      brightnessctl set 5%-
+      brightnessctl set 10%-
 
     # Screenshot
     Print
       flameshot gui
+    super + Print
+      flameshot full
 
-    # Clipboard (CopyQ)
+    # Clipboard
     super + v
-      copyq toggle
-
-    # Lock
-    super + ctrl + l
-      betterlockscreen -l
+      copyq show
   '';
 }
