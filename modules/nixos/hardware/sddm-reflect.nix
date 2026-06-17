@@ -1,6 +1,11 @@
 # SDDM Qt6 com sddm-astronaut-theme.
 # kdePackages.qtmultimedia em extraPackages é obrigatório (bug nixpkgs #390251).
 # Autologin.Relogin = false: evita loop se a sessão encerrar inesperadamente.
+#
+# wayland.enable = true: OBRIGATÓRIO para sessões Wayland (niri).
+# Sem isso, o SDDM opera em modo X11 puro e nunca expõe
+# /run/current-system/sw/share/wayland-sessions/ — o niri.desktop fica
+# invisível para o display manager e o autologin não encontra a sessão.
 
 { pkgs, ... }:
 
@@ -18,9 +23,10 @@ in
   environment.systemPackages = [ sddm-astronaut ];
 
   services.displayManager.sddm = {
-    enable  = true;
-    package = pkgs.kdePackages.sddm;
-    theme   = "sddm-astronaut-theme";
+    enable         = true;
+    package        = pkgs.kdePackages.sddm;
+    wayland.enable = true;
+    theme          = "sddm-astronaut-theme";
     extraPackages = [
       sddm-astronaut
       pkgs.kdePackages.qtmultimedia
