@@ -4,31 +4,13 @@
   imports = [
     (inputs.noctalia.homeModules.default)
 
-    ./modules/stylix.nix
-    ./modules/dolphin-nord.nix
-
-    ./modules/bspwm.nix
-    ./modules/polybar.nix
-    ./modules/picom.nix
-    ./modules/dunst.nix
-
-    ./modules/niri.nix
-    ./modules/noctalia.nix
-    ./modules/mouse-invert.nix
-    ./modules/hot-corner.nix
-
-    ./modules/terminals.nix
-    ./modules/clipboard.nix
-    ./modules/yazi.nix
-    ./modules/lf.nix
-    ./modules/neovim.nix
-    ./modules/zsh.nix
-    ./modules/files.nix
-
-    ./modules/wallpaper.nix
-
-    ./modules/coding-agents.nix
-    ./modules/cargo-config.nix
+    ./modules/appearance
+    ./modules/x11
+    ./modules/wayland
+    ./modules/shell
+    ./modules/apps
+    ./modules/hardware
+    ./modules/misc
   ];
 
   home.username      = "lucasxll";

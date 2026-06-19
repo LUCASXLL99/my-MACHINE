@@ -18,7 +18,11 @@
     enable = true;
     keyboards.internalKeyboard = {
       devices = [
-        "/dev/input/by-path/pci-0000:05:00.4-usb-0:2:1.0-event-kbd"
+        # Somente o teclado interno (PS/2 — estável, nunca muda de caminho)
+        # O Corne foi REMOVIDO desta lista intencionalmente: ele já faz todo
+        # o remapeamento no firmware QMK. Se o Kanata monitorar o Corne,
+        # ele intercepta o KC_CAPS enviado pelo tap-dance e o converte em
+        # Esc/Ctrl, fazendo o Caps Lock nunca chegar ao sistema.
         "/dev/input/by-path/platform-i8042-serio-0-event-kbd"
       ];
       extraDefCfg = "process-unmapped-keys yes";
