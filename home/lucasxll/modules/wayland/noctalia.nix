@@ -126,7 +126,7 @@
     };
     Service = {
       # Caminho absoluto obrigatório: systemd user não herda o PATH do shell.
-      ExecStart  = "${inputs.noctalia.packages.${pkgs.system}.noctalia-shell}/bin/noctalia-shell";
+      ExecStart  = "${inputs.noctalia.packages.${pkgs.system}.default}/bin/noctalia-shell";
       Restart    = "on-failure";
       RestartSec = "3s";
     };
