@@ -116,17 +116,8 @@
     };
   };
 
-  # ════════════════════════════════════════════════════════════════
-  # NOCTALIA — serviço systemd (substitui o spawn-at-startup do niri)
-  # ════════════════════════════════════════════════════════════════
-  #
-  # Motivo: iniciar via spawn-at-startup com sleep 2 causava race condition
-  # — o noctalia tentava conectar no Wayland antes do dbus-update-activation-
-  # environment exportar WAYLAND_DISPLAY, resultando em tela preta no boot.
-  #
-  # Com WantedBy = graphical-session.target, o systemd garante que o noctalia
-  # só sobe depois que WAYLAND_DISPLAY e XDG_CURRENT_DESKTOP já estão no bus.
-  # O Restart=on-failure cobre qualquer falha transitória sem intervenção manual.
+  # Serviço systemd em vez de spawn-at-startup: garante que WAYLAND_DISPLAY
+  # já está no bus antes do noctalia conectar (status=203/EXEC sem caminho absoluto).
   systemd.user.services.noctalia-shell = {
     Unit = {
       Description = "Noctalia Shell — bar, notifications, wallpaper, lock, idle";
@@ -135,7 +126,6 @@
     };
     Service = {
       # Caminho absoluto obrigatório: systemd user não herda o PATH do shell.
-      # Usamos o mesmo pacote que o homeModule já resolve internamente.
       ExecStart  = "${inputs.noctalia.packages.${pkgs.system}.noctalia-shell}/bin/noctalia-shell";
       Restart    = "on-failure";
       RestartSec = "3s";

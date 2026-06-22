@@ -1,6 +1,4 @@
-# gnome-keyring como Secret Service daemon.
-# security.pam.services.sddm.enableGnomeKeyring = false enquanto autologin estiver ativo
-# (pode travar o fluxo de autologin).
+# sddm.enableGnomeKeyring = false: autologin pode travar se ativado.
 
 { pkgs, ... }:
 

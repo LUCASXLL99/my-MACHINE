@@ -61,9 +61,9 @@
   hardware.keyboard.qmk.enable = true;
   services.pulseaudio.enable   = false;
 
-  # ── Display (X11 / bspwm) ────────────────────────────────────────────────────
-  # services.xserver.enable mantém a sessão bspwm disponível no SDDM.
-  # lightdm.enable = false: evita que o xserver registre display-manager secundário.
+  # ── Display ──────────────────────────────────────────────────────────────────
+  # xserver.enable mantém a sessão bspwm disponível no SDDM.
+  # lightdm.enable = false: evita display-manager secundário.
   services.xserver = {
     enable      = true;
     xkb.layout  = "br";

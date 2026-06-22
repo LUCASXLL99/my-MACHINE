@@ -1,4 +1,5 @@
-# kitty e dunst: cores via Stylix. gtk: dolphin-nord.nix usa Nordic.
+# gtk desativado: tema Nordic gerenciado pelo dolphin-nord.nix via Kvantum/GTK direto.
+# waybar, mako, wezterm: gerenciados por outros módulos ou não usados.
 
 { ... }:
 

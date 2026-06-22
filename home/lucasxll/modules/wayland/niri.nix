@@ -1,25 +1,11 @@
-# home/lucasxll/modules/niri.nix
-#
-# Config do compositor Niri + serviços systemd de suporte.
-#
-# O noctalia-shell (noctalia.nix) substitui:
-#   waybar, mako, fuzzel, swww, hyprlock, swayidle
-# Este arquivo mantém APENAS:
-#   • Config KDL do compositor
-#   • xwayland-satellite (X11 compat)
-#   • Overrides de serviços que conflitam com niri (picom, dunst, portal-gnome)
-
 { config, pkgs, inputs, ... }:
 
 {
   home.packages = with pkgs; [
-    grim          # screenshot nativo Wayland
-    slurp         # seleção de área (Ctrl+Print)
-    wl-clipboard  # wl-copy / wl-paste
-    wlr-randr     # controle de output (niri-mirror / niri-reset)
-    xorg.xauth    # geração de cookie MIT-MAGIC-COOKIE para xwayland-satellite
-    # Fallbacks — descomentar SOMENTE se noctalia não subir:
-    # waybar mako fuzzel swww hyprlock swayidle
+    grim slurp
+    wl-clipboard
+    wlr-randr
+    xorg.xauth
   ];
 
   xdg.configFile."niri/config.kdl".text = ''
@@ -47,8 +33,6 @@
     // ── OUTPUT ─────────────────────────────────────────────────────
     output "eDP-1" {
         scale 1.0
-        // transform "normal"  // padrão — sem espelho no boot
-        // use niri-mirror (Mod+F5) para ativar o espelho quando quiser
     }
 
     // ── LAYOUT ─────────────────────────────────────────────────────
@@ -88,14 +72,9 @@
     prefer-no-csd
     animations {
       slowdown 0.8;
-      // Desativa animação de abertura: janela não aparece na direita
-      // antes do niri-autoplace movê-la para a esquerda.
+      // off: janela não aparece à direita antes do niri-autoplace movê-la.
       window-open { off; }
-      // Desativa animação de movimento horizontal de colunas/viewport.
-      // Sem isso, o move-column-to-first do niri-autoplace causa um
-      // deslize visível da direita para a esquerda após a abertura.
-      // Com off, o movimento é instantâneo — janela teleporta para
-      // a primeira posição sem nenhum flash ou slide perceptível.
+      // off: evita slide visível ao mover coluna para a primeira posição.
       // Navegação normal (Mod+H/S) também fica instantânea.
       horizontal-view-movement { off; }
     }
@@ -106,128 +85,84 @@
 
     // ── AMBIENTE ───────────────────────────────────────────────────
     environment {
-        // /run/wrappers/bin PRIMEIRO: sudo e outros setuid ficam aqui.
-        // A versão em /run/current-system/sw/bin é symlink para o nix store,
-        // que é montado com nosuid — o bit setuid não é honrado lá.
+        // /run/wrappers/bin primeiro: sudo e outros setuid ficam aqui.
+        // /run/current-system/sw/bin é nosuid — setuid não é honrado lá.
         PATH "/run/wrappers/bin:/run/current-system/sw/bin:/etc/profiles/per-user/lucasxll/bin:/nix/var/nix/profiles/default/bin:/usr/local/bin:/usr/bin:/bin"
 
         QT_QPA_PLATFORM "wayland"
         ELECTRON_OZONE_PLATFORM_HINT "auto"
 
-        // DISPLAY fixo: xwayland-satellite sobe em :1 (:0 é ocupado pelo SDDM)
+        // :1 porque :0 é ocupado pelo SDDM
         DISPLAY ":1"
 
-        // Java/AWT — Android Studio
         _JAVA_AWT_WM_NONREPARENTING "1"
     }
 
     screenshot-path "~/Pictures/Screenshots/Screenshot_%Y-%m-%d_%H-%M-%S.png"
 
     // ── STARTUP ────────────────────────────────────────────────────
-    // Ordem:
-    //   t=0 → dbus env exportado (noctalia, xwayland precisam de WAYLAND_DISPLAY)
-    //   t=0 → mpris-proxy (controle de mídia via MPRIS)
-    //   t=2 → mouse-invert-y restart (garante dispositivos [inv] com udev carregado)
-    //   t=2 → noctalia-shell (barra, notif, wallpaper, lock, idle, luz noturna)
-    //   t=5 → nm-applet (tray de rede avançada — VPN, etc.)
-    //
-    // waybar, xwayland-satellite → serviços systemd (logs, restart automático)
-    // swayidle → REMOVIDO: noctalia gerencia idle/suspend via D-Bus loginctl
-    //            (swayidle chamava systemctl suspend diretamente, bypassava
-    //             inibidores do logind → tela vermelha/congelada após resume)
-    // Exporta variáveis de ambiente para o bus D-Bus e systemd --user.
-    // Isso é crítico: sem WAYLAND_DISPLAY no bus, serviços como noctalia,
-    // xwayland-satellite e mpvpaper não encontram o compositor e falham.
-    //
-    // O sleep 1 garante que o niri terminou sua própria inicialização antes
-    // de exportar — evita race condition onde o socket ainda não está pronto.
+    // sleep 1: garante que o socket niri está pronto antes de exportar.
     spawn-at-startup "sh" "-c" "sleep 1 && dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP NIRI_SOCKET DISPLAY"
     spawn-at-startup "sh" "-c" "pkill mpris-proxy; mpris-proxy"
     spawn-at-startup "sh" "-c" "sleep 2 && systemctl --user restart mouse-invert-y"
-    // noctalia-shell → iniciado via systemd (noctalia.nix → noctalia-shell.service)
-    //                  WantedBy = graphical-session.target garante que WAYLAND_DISPLAY
-    //                  já está no bus antes do noctalia tentar conectar.
-    // copyq iniciado via systemd (clipboard.nix) — sem spawn aqui
     spawn-at-startup "sh" "-c" "sleep 5 && nm-applet --indicator"
     spawn-at-startup "sh" "-c" "sleep 5 && systemctl --user start niri-blueman-applet"
-    // wallpaper → gerenciado por systemd (home/lucasxll/modules/wallpaper.nix)
-    //             systemctl --user status mpvpaper
+    // noctalia-shell, copyq, mpvpaper, xwayland-satellite → serviços systemd
 
     // ── ATALHOS ────────────────────────────────────────────────────
     binds {
-        // Terminais
-        // niri-autoplace cuida de mover para a esquerda — keybinds simples
         Mod+Return       { spawn "wezterm"; }
         Mod+T            { spawn "wezterm"; }
         Mod+Shift+Return { spawn "kitty"; }
 
-        // Launchers
         Mod+D { spawn "noctalia-shell" "ipc" "call" "launcher" "toggle"; }
         Mod+R { spawn "sh" "-c" "DISPLAY=:1 rofi -show drun"; }
 
-        // Apps
-        // niri-autoplace move automaticamente qualquer janela nova para a esquerda.
-        // Mod+A aguarda o socket X1 estar disponível antes de lançar o Studio
-        // (evita race condition se xwayland-satellite ainda estiver subindo).
         Mod+E { spawn "dolphin"; }
-        Mod+B { spawn "blueman-manager"; }     // gerenciador Bluetooth
+        Mod+B { spawn "blueman-manager"; }
+        // Aguarda socket X1 antes de lançar (xwayland-satellite pode ainda estar subindo)
         Mod+A { spawn "sh" "-c" "for i in $(seq 1 20); do [ -S /tmp/.X11-unix/X1 ] && break; sleep 0.5; done; android-studio"; }
 
-        // Clipboard
         Mod+V { spawn "copyq" "show"; }
 
-        // Screenshot
-        // Print/Shift+Print → nativo do niri (sem slurp, sem overlay, sem trava)
-        // Ctrl+Print → grim+slurp com "|| exit 0" (Esc fecha limpo)
         Print       { screenshot; }
         Shift+Print { screenshot-screen; }
         Ctrl+Print  { spawn "sh" "-c" "sel=$(slurp 2>/dev/null) || exit 0; grim -g \"$sel\" - | wl-copy"; }
 
-        // Lock
-        Mod+Ctrl+L { spawn "noctalia-shell" "ipc" "call" "lockScreen" "lock"; }
-
-        // Sessão
+        Mod+Ctrl+L  { spawn "noctalia-shell" "ipc" "call" "lockScreen" "lock"; }
         Mod+Shift+P { spawn "noctalia-shell" "ipc" "call" "sessionMenu" "toggle"; }
 
-        // Volume — IPC noctalia (OSD integrado)
         XF86AudioRaiseVolume allow-when-locked=true { spawn "noctalia-shell" "ipc" "call" "volume" "increase"; }
         XF86AudioLowerVolume allow-when-locked=true { spawn "noctalia-shell" "ipc" "call" "volume" "decrease"; }
         XF86AudioMute        allow-when-locked=true { spawn "noctalia-shell" "ipc" "call" "volume" "muteOutput"; }
 
-        // Mídia
         XF86AudioPlay  { spawn "playerctl" "play-pause"; }
         XF86AudioPause { spawn "playerctl" "play-pause"; }
         XF86AudioNext  { spawn "playerctl" "next"; }
         XF86AudioPrev  { spawn "playerctl" "previous"; }
 
-        // Brilho
         XF86MonBrightnessUp   { spawn "brightnessctl" "set" "+10%"; }
         XF86MonBrightnessDown { spawn "brightnessctl" "set" "10%-"; }
 
-        // Tela
         Mod+F5 { spawn "niri-mirror"; }
         Mod+F6 { spawn "niri-reset"; }
 
-        // Fechar
         Mod+W         { close-window; }
+        Mod+Shift+Q   { close-window; }
         Mod+Semicolon { spawn "sh" "-c" "pkill mpvpaper || mpvpaper -o 'no-audio loop' '*' ~/Pictures/wallpapers/wallpaper.mp4"; }
-        Mod+Shift+Q { close-window; }
 
-        // Foco (hjkl)
-        Mod+H { focus-column-right; }
-        Mod+S { focus-column-left; }
-        Mod+J { focus-window-down; }
-        Mod+K { focus-window-up; }
+        Mod+H    { focus-column-right; }
+        Mod+S    { focus-column-left; }
+        Mod+J    { focus-window-down; }
+        Mod+K    { focus-window-up; }
         Mod+Home { focus-column-first; }
         Mod+End  { focus-column-last; }
 
-        // Mover
         Mod+Shift+H { move-column-left; }
         Mod+Shift+L { move-column-right; }
         Mod+Shift+J { move-window-down; }
         Mod+Shift+K { move-window-up; }
 
-        // Workspaces
         Mod+Ctrl+J       { focus-workspace-down; }
         Mod+Ctrl+K       { focus-workspace-up; }
         Mod+Ctrl+Shift+J { move-window-to-workspace-down; }
@@ -253,40 +188,35 @@
         Mod+Shift+8 { move-window-to-workspace 8; }
         Mod+Shift+9 { move-window-to-workspace 9; }
 
-        // Layout
-        Mod+F         { maximize-column; }
-        Mod+Shift+F   { fullscreen-window; }
-        Mod+M         { toggle-window-floating; }
-        Mod+Shift+T   { toggle-window-floating; }
-        Mod+Ctrl+R    { switch-preset-column-width; }
-        Mod+Comma     { consume-window-into-column; }
-        Mod+Period    { expel-window-from-column; }
+        Mod+F       { maximize-column; }
+        Mod+Shift+F { fullscreen-window; }
+        Mod+M       { toggle-window-floating; }
+        Mod+Shift+T { toggle-window-floating; }
+        Mod+Ctrl+R  { switch-preset-column-width; }
+        Mod+Comma   { consume-window-into-column; }
+        Mod+Period  { expel-window-from-column; }
 
-        // Redimensionar
         Mod+Alt+H { set-column-width  "-10%"; }
         Mod+Alt+L { set-column-width  "+10%"; }
         Mod+Alt+J { set-window-height "+10%"; }
         Mod+Alt+K { set-window-height "-10%"; }
-        // Floating
+
         Mod+Shift+V { switch-focus-between-floating-and-tiling; }
 
-        // Coluna
         Mod+C         { center-column; }
         Mod+Ctrl+F    { expand-column-to-available-width; }
         Mod+BracketLeft  { consume-or-expel-window-left; }
         Mod+BracketRight { consume-or-expel-window-right; }
 
-        // Workspaces — aliases U/I (alternativa a Ctrl+J/K)
-        Mod+U              { focus-workspace-down; }
-        Mod+I              { focus-workspace-up; }
-        Mod+Page_Down      { focus-workspace-down; }
-        Mod+Page_Up        { focus-workspace-up; }
-        Mod+Ctrl+U         { move-column-to-workspace-down; }
-        Mod+Ctrl+I         { move-column-to-workspace-up; }
+        Mod+U         { focus-workspace-down; }
+        Mod+I         { focus-workspace-up; }
+        Mod+Page_Down { focus-workspace-down; }
+        Mod+Page_Up   { focus-workspace-up; }
+        Mod+Ctrl+U    { move-column-to-workspace-down; }
+        Mod+Ctrl+I    { move-column-to-workspace-up; }
         Mod+Shift+Page_Down { move-workspace-down; }
         Mod+Shift+Page_Up   { move-workspace-up; }
 
-        // Scroll do mouse com Mod
         Mod+WheelScrollDown      cooldown-ms=150 { focus-column-right; }
         Mod+WheelScrollUp        cooldown-ms=150 { focus-column-left; }
         Mod+Ctrl+WheelScrollDown cooldown-ms=150 { focus-workspace-down; }
@@ -298,7 +228,6 @@
     }
 
     // ── WINDOW RULES ───────────────────────────────────────────────
-    // Dolphin abre em modo tiling (remover open-floating true)
     window-rule {
         match app-id="org.kde.dolphin"
     }
@@ -318,6 +247,11 @@
         match title="^Picture-in-Picture$"
         open-floating true
     }
+    window-rule {
+        match app-id=r#"firefox$"# title="^Picture-in-Picture$"
+        open-floating true
+    }
+
     // ── EFEITOS VISUAIS ────────────────────────────────────────────
     window-rule {
         geometry-corner-radius 20
@@ -329,40 +263,23 @@
     window-rule {
         draw-border-with-background false
     }
-    window-rule {
-        match app-id=r#"firefox$"# title="^Picture-in-Picture$"
-        open-floating true
-    }
   '';
 
-  # ════════════════════════════════════════════════════════════════
-  # NIRI-AUTOPLACE — move QUALQUER janela nova para a esquerda
-  # ════════════════════════════════════════════════════════════════
-  #
-  # Serviço universal: qualquer janela tiling nova que abrir focada é
-  # movida para a esquerda automaticamente — sem lista de apps.
-  #
-  # Janelas floating (pavucontrol, copyq, diálogos, etc.) são ignoradas
-  # via filtro is_floating no jq.
-  #
-  # Cada janela é rastreada pelo ID numérico em $SEEN (tmpdir).
-  # Isso garante que a janela seja movida só uma vez — re-focar a mesma
-  # janela não dispara um segundo move-column-to-first.
-  #
-  # Para descobrir o app_id de qualquer janela:
-  #   niri msg --json windows | jq '.[].app_id'
+  # ── NIRI-AUTOPLACE ─────────────────────────────────────────────────────────
+  # Move qualquer janela tiling nova para a primeira posição automaticamente.
+  # Janelas floating são ignoradas via filtro is_floating.
+  # Cada janela é rastreada pelo ID em $SEEN para ser movida só uma vez.
   systemd.user.services.niri-autoplace = {
     Unit = {
-      Description = "Niri auto-place — move qualquer janela nova para a primeira posição";
+      Description = "Niri autoplace — move janelas novas para a primeira posição";
       After       = [ "niri.service" ];
       BindsTo     = [ "niri.service" ];
     };
     Service = {
-      Type    = "simple";
-      Restart = "on-failure";
+      Type       = "simple";
+      Restart    = "on-failure";
       RestartSec = "2s";
-      ExecStart = pkgs.writeShellScript "niri-autoplace" ''
-        # Aguarda o socket do niri estar disponível
+      ExecStart  = pkgs.writeShellScript "niri-autoplace" ''
         for i in $(seq 1 20); do
           [ -n "$NIRI_SOCKET" ] && break
           NIRI_SOCKET=$(${pkgs.systemd}/bin/systemctl --user show-environment 2>/dev/null \
@@ -372,18 +289,9 @@
         [ -z "$NIRI_SOCKET" ] && { echo "niri-autoplace: NIRI_SOCKET não encontrado" >&2; exit 1; }
         export NIRI_SOCKET
 
-        echo "niri-autoplace: monitorando TODAS as janelas em $NIRI_SOCKET"
-
-        # Diretório temporário para rastrear IDs já processados.
-        # Cada janela nova ganha um arquivo vazio com seu ID como nome.
-        # Re-focar a mesma janela não dispara move-column-left novamente.
         SEEN=$(mktemp -d /tmp/niri-autoplace-XXXXXX)
         trap 'rm -rf "$SEEN"' EXIT INT TERM
 
-        # Escuta eventos e age sobre WindowOpenedOrChanged não-floating.
-        # NÃO filtra is_focused: apps X11/XWayland (Android Studio, etc.)
-        # recebem foco num evento separado e nunca passariam por esse filtro.
-        # O ID tracking abaixo garante que cada janela é movida só uma vez.
         ${pkgs.niri}/bin/niri msg --json event-stream \
           | ${pkgs.jq}/bin/jq -c --unbuffered '
               select(.WindowOpenedOrChanged != null)
@@ -395,12 +303,10 @@
               wid=$(printf '%s' "$ev" | ${pkgs.jq}/bin/jq -r '.id // ""')
               app_id=$(printf '%s' "$ev" | ${pkgs.jq}/bin/jq -r '.app_id // ""')
               [ -z "$wid" ] && continue
-
-              # Processa cada janela apenas uma vez (na abertura)
               if [ ! -f "$SEEN/$wid" ]; then
                 touch "$SEEN/$wid"
                 ${pkgs.niri}/bin/niri msg action move-column-to-first
-                echo "niri-autoplace: moveu '$app_id' (id=$wid) para a primeira posição"
+                echo "niri-autoplace: '$app_id' (id=$wid)"
               fi
             done
       '';
@@ -408,14 +314,11 @@
     Install.WantedBy = [ "niri.service" ];
   };
 
-  # ════════════════════════════════════════════════════════════════
-  # BLUETOOTH — applet de tray para niri
-  # ════════════════════════════════════════════════════════════════
-  # Iniciado via spawn-at-startup (não via WantedBy) — só ativo no niri.
-  # Para abrir o manager: Mod+B  ou  blueman-manager no terminal.
+  # ── BLUETOOTH APPLET ───────────────────────────────────────────────────────
+  # Sem WantedBy: iniciado pelo spawn-at-startup do niri.
   systemd.user.services.niri-blueman-applet = {
     Unit = {
-      Description = "Blueman applet — Bluetooth tray (niri)";
+      Description = "Blueman applet (niri)";
       After       = [ "graphical-session.target" ];
       PartOf      = [ "graphical-session.target" ];
     };
@@ -424,13 +327,9 @@
       Restart    = "on-failure";
       RestartSec = "3s";
     };
-    # Sem WantedBy: iniciado pelo spawn-at-startup do niri config.
-    # bspwm usa seu próprio serviço bspwm-blueman.
   };
 
-  # ════════════════════════════════════════════════════════════════
-  # XWAYLAND-SATELLITE — X11 no Niri
-  # ════════════════════════════════════════════════════════════════
+  # ── XWAYLAND-SATELLITE ─────────────────────────────────────────────────────
   systemd.user.services.xwayland-satellite = {
     Unit = {
       Description = "XWayland Satellite — X11 compat no Niri";
@@ -439,20 +338,13 @@
     };
     Service = {
       Type = "simple";
-
-      # XAUTHORITY fixo no runtime dir do usuário.
-      # Precisa estar no Environment do service para que o xwayland-satellite
-      # passe o flag -auth para o Xwayland interno, e para que ExecStartPost
-      # consiga ler $XDG_RUNTIME_DIR com o valor correto.
+      # XAUTHORITY fixo no runtime dir: ExecStartPost usa o mesmo valor.
       Environment = [ "XAUTHORITY=%t/.Xauthority-xwayland" ];
 
       ExecStartPre = pkgs.writeShellScript "xwayland-satellite-pre" ''
-        # ── 1. Remove socket órfão de sessão anterior ─────────────────
-        # O Xwayland não consegue criar :1 se o arquivo já existe.
-        # Isso acontece quando a sessão anterior foi encerrada sem cleanup.
+        # Remove socket órfão de sessão anterior (Xwayland não sobe em :1 se já existir)
         rm -f /tmp/.X11-unix/X1
 
-        # ── 2. Aguarda WAYLAND_DISPLAY estar disponível ───────────────
         for i in $(seq 1 30); do
           WD=$(${pkgs.systemd}/bin/systemctl --user show-environment 2>/dev/null \
                | grep '^WAYLAND_DISPLAY=' | cut -d= -f2)
@@ -463,34 +355,27 @@
           echo "xwayland-satellite: WAYLAND_DISPLAY indisponivel" >&2; exit 1
         }
 
-        # ── 3. Gera cookie MIT-MAGIC-COOKIE-1 para :1 ────────────────
-        # Sem isso, todo cliente X11 recebe "Authorization required".
-        # O cookie é aleatório e vale só para a sessão atual.
+        # Gera cookie MIT-MAGIC-COOKIE-1 para :1 (sem isso clientes X11 recebem auth error)
         AUTHFILE="$XDG_RUNTIME_DIR/.Xauthority-xwayland"
         COOKIE=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
         ${pkgs.xorg.xauth}/bin/xauth -f "$AUTHFILE" add :1 . "$COOKIE"
-        echo "xwayland-satellite: auth cookie gerado em $AUTHFILE"
       '';
 
       PassEnvironment = "WAYLAND_DISPLAY";
       ExecStart       = "${pkgs.xwayland-satellite}/bin/xwayland-satellite :1";
 
       ExecStartPost = pkgs.writeShellScript "xwayland-satellite-post" ''
-        # Aguarda o socket :1 aparecer, depois exporta DISPLAY e XAUTHORITY
-        # para toda a sessão via dbus/systemd.
-        # Sem exportar XAUTHORITY, apps como Android Studio não encontram
-        # o cookie e falham com "Authorization required".
+        # Aguarda socket :1 e exporta DISPLAY + XAUTHORITY para a sessão
         AUTHFILE="$XDG_RUNTIME_DIR/.Xauthority-xwayland"
         for i in $(seq 1 20); do
           [ -S /tmp/.X11-unix/X1 ] && \
             ${pkgs.dbus}/bin/dbus-update-activation-environment --systemd \
               DISPLAY=:1 \
               XAUTHORITY="$AUTHFILE" && \
-            echo "xwayland-satellite: DISPLAY=:1 XAUTHORITY=$AUTHFILE exportados" && \
             exit 0
           sleep 0.5
         done
-        echo "xwayland-satellite: socket X1 nao apareceu" >&2; exit 1
+        echo "xwayland-satellite: socket X1 não apareceu" >&2; exit 1
       '';
 
       Restart    = "on-failure";
@@ -499,24 +384,19 @@
     Install.WantedBy = [ "niri.service" ];
   };
 
-  # ════════════════════════════════════════════════════════════════
-  # OVERRIDES — serviços que conflitam com o Niri
-  # ════════════════════════════════════════════════════════════════
-
-  # picom não tem função no Wayland — niri faz compositing nativamente
+  # ── OVERRIDES ──────────────────────────────────────────────────────────────
+  # picom: sem função no Wayland (niri faz compositing nativo)
   systemd.user.services.picom = {
     Unit.ConditionEnvironment = "!NIRI_SOCKET";
   };
   systemd.user.services."app-picom@autostart" = {
     Unit.ConditionEnvironment = "!NIRI_SOCKET";
   };
-
-  # dunst briga com as notificações do noctalia pelo D-Bus
+  # dunst: conflita com notificações do noctalia pelo D-Bus
   systemd.user.services.dunst = {
     Unit.Conflicts = "niri.service";
   };
-
-  # portal-gnome conflita com portal-gtk para file chooser no Wayland
+  # portal-gnome: conflita com portal-gtk para file chooser no Wayland
   systemd.user.services.xdg-desktop-portal-gnome = {
     Unit.ConditionEnvironment = "!NIRI_SOCKET";
   };

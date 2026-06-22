@@ -4,12 +4,9 @@ let
   wallpaperPath = "${config.home.homeDirectory}/Pictures/wallpapers/wallpaper.mp4";
 
   launchScript = pkgs.writeShellScript "mpvpaper-launch" ''
-    # Aborta silenciosamente (exit 0 = sem restart) se o arquivo não existir.
-    # Sem esse guard, o mpvpaper falha 3 vezes (StartLimitBurst), renderizando
-    # um frame preto a cada tentativa — o que resulta em tela preta mesmo com
-    # o niri rodando normalmente.
+    # Sem wallpaper: exit 0 evita restart loop e tela preta (StartLimitBurst)
     if [ ! -f "${wallpaperPath}" ]; then
-      echo "mpvpaper-launch: wallpaper não encontrado em ${wallpaperPath}, abortando sem restart." >&2
+      echo "mpvpaper: wallpaper não encontrado em ${wallpaperPath}" >&2
       exit 0
     fi
     if [ -z "$WAYLAND_DISPLAY" ]; then
@@ -23,10 +20,7 @@ let
         sleep 0.5
       done
     fi
-    if [ -z "$WAYLAND_DISPLAY" ]; then
-      echo "mpvpaper-launch: WAYLAND_DISPLAY não disponível" >&2
-      exit 1
-    fi
+    [ -z "$WAYLAND_DISPLAY" ] && { echo "mpvpaper: WAYLAND_DISPLAY não disponível" >&2; exit 1; }
     exec ${pkgs.mpvpaper}/bin/mpvpaper -o 'no-audio loop' '*' ${wallpaperPath}
   '';
 in

@@ -1,14 +1,7 @@
-# SDDM Qt6 com sddm-astronaut-theme.
-# kdePackages.qtmultimedia em extraPackages é obrigatório (bug nixpkgs #390251).
+# wayland.enable = false (padrão): SDDM roda em X11 no VT 7.
+# Com wayland.enable = true, o SDDM sobe kwin_wayland no mesmo VT e o
+# autologin conflita com o niri → sessão encerra em ~3s.
 # Autologin.Relogin = false: evita loop se a sessão encerrar inesperadamente.
-#
-# wayland.enable = false (padrão): SDDM roda em modo X11 no VT 7.
-# Com wayland.enable = true, o SDDM sobe seu próprio compositor Wayland
-# (kwin_wayland) no VT 7 e o autologin tenta iniciar niri-session no mesmo
-# VT — conflito de DRM, niri sai em ~3s e o SDDM mostra o greeter.
-# No modo X11, o autologin abre o niri-session em um VT livre (VT 1/2)
-# sem conflito. O niri.desktop é encontrado via environment.etc +
-# pathsToLink em niri.nix, portanto o modo X11 funciona corretamente.
 
 { pkgs, ... }:
 
@@ -31,7 +24,7 @@ in
     theme   = "sddm-astronaut-theme";
     extraPackages = [
       sddm-astronaut
-      pkgs.kdePackages.qtmultimedia
+      pkgs.kdePackages.qtmultimedia  # obrigatório: bug nixpkgs #390251
       pkgs.kdePackages.qtwayland
     ];
     settings = {

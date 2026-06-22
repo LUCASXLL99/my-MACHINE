@@ -1,6 +1,6 @@
-# Luz noturna via wlsunset — Fortaleza, CE (-3.7 / -38.5).
-# After+BindsTo=niri.service + ExecStartPre aguarda WAYLAND_DISPLAY
-# (ConditionEnvironment é avaliado antes do niri exportar ao bus).
+# wlsunset — luz noturna para Fortaleza, CE (-3.7 / -38.5).
+# ConditionEnvironment não funciona aqui: é avaliado antes do niri exportar
+# WAYLAND_DISPLAY ao bus, então usamos ExecStartPre com polling.
 
 { pkgs, ... }:
 
