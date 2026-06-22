@@ -115,4 +115,29 @@
       };
     };
   };
+
+  # ════════════════════════════════════════════════════════════════
+  # NOCTALIA — serviço systemd (substitui o spawn-at-startup do niri)
+  # ════════════════════════════════════════════════════════════════
+  #
+  # Motivo: iniciar via spawn-at-startup com sleep 2 causava race condition
+  # — o noctalia tentava conectar no Wayland antes do dbus-update-activation-
+  # environment exportar WAYLAND_DISPLAY, resultando em tela preta no boot.
+  #
+  # Com WantedBy = graphical-session.target, o systemd garante que o noctalia
+  # só sobe depois que WAYLAND_DISPLAY e XDG_CURRENT_DESKTOP já estão no bus.
+  # O Restart=on-failure cobre qualquer falha transitória sem intervenção manual.
+  systemd.user.services.noctalia-shell = {
+    Unit = {
+      Description = "Noctalia Shell — bar, notifications, wallpaper, lock, idle";
+      After       = [ "graphical-session.target" ];
+      PartOf      = [ "graphical-session.target" ];
+    };
+    Service = {
+      ExecStart  = "noctalia-shell";
+      Restart    = "on-failure";
+      RestartSec = "3s";
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
+  };
 }

@@ -144,7 +144,9 @@
     spawn-at-startup "sh" "-c" "sleep 1 && dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP NIRI_SOCKET DISPLAY"
     spawn-at-startup "sh" "-c" "pkill mpris-proxy; mpris-proxy"
     spawn-at-startup "sh" "-c" "sleep 2 && systemctl --user restart mouse-invert-y"
-    spawn-at-startup "sh" "-c" "sleep 2 && noctalia-shell"
+    // noctalia-shell → iniciado via systemd (noctalia.nix → noctalia-shell.service)
+    //                  WantedBy = graphical-session.target garante que WAYLAND_DISPLAY
+    //                  já está no bus antes do noctalia tentar conectar.
     // copyq iniciado via systemd (clipboard.nix) — sem spawn aqui
     spawn-at-startup "sh" "-c" "sleep 5 && nm-applet --indicator"
     spawn-at-startup "sh" "-c" "sleep 5 && systemctl --user start niri-blueman-applet"
