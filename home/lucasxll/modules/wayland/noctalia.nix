@@ -134,7 +134,9 @@
       PartOf      = [ "graphical-session.target" ];
     };
     Service = {
-      ExecStart  = "noctalia-shell";
+      # Caminho absoluto obrigatório: systemd user não herda o PATH do shell.
+      # Usamos o mesmo pacote que o homeModule já resolve internamente.
+      ExecStart  = "${inputs.noctalia.packages.${pkgs.system}.noctalia-shell}/bin/noctalia-shell";
       Restart    = "on-failure";
       RestartSec = "3s";
     };
