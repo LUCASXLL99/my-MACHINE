@@ -9,6 +9,7 @@
     ../../modules/nixos/system/packages.nix
 
     ../../modules/nixos/hardware/sddm-reflect.nix
+    ../../modules/nixos/hardware/greetd-autologin.nix
     ./hardware-configuration.nix
     ../../modules/nixos/hardware/input-left-handed.nix
     ../../modules/nixos/hardware/bluetooth-audio.nix

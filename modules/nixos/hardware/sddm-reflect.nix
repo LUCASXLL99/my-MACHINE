@@ -1,7 +1,19 @@
-# wayland.enable = false (padrão): SDDM roda em X11 no VT 7.
-# Com wayland.enable = true, o SDDM sobe kwin_wayland no mesmo VT e o
-# autologin conflita com o niri → sessão encerra em ~3s.
-# Autologin.Relogin = false: evita loop se a sessão encerrar inesperadamente.
+# ══════════════════════════════════════════════════════════════════════════════
+# SDDM — registro de sessões e tema visual
+# ══════════════════════════════════════════════════════════════════════════════
+#
+# O SDDM não é mais o display-manager ativo — esse papel foi assumido pelo
+# greetd (greetd-autologin.nix). O SDDM permanece habilitado aqui por dois
+# motivos:
+#
+#   1. Registra as sessões (niri, bspwm) em xsessions/ e wayland-sessions/
+#      para que outros softwares (portais XDG, loginctl) as reconheçam.
+#
+#   2. O tema sddm-astronaut fica disponível no sistema para quando o greetd
+#      invocar o sddm-greeter como greeter de fallback ao matar a sessão.
+#
+# Autologin removido daqui — configurado no greetd-autologin.nix.
+# display-manager.service desabilitado em greetd-autologin.nix via mkForce.
 
 { pkgs, ... }:
 
@@ -31,9 +43,7 @@ in
       General.RememberLastUser    = false;
       General.RememberLastSession = false;
       Users.RememberLastUser      = false;
-      Autologin.User    = "lucasxll";
-      Autologin.Session = "niri";
-      Autologin.Relogin = false;
+      # Sem Autologin aqui — gerenciado pelo greetd (greetd-autologin.nix)
     };
   };
 }
