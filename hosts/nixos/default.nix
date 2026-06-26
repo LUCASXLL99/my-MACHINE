@@ -111,16 +111,13 @@
   # ── Portal XDG ───────────────────────────────────────────────────────────────
   xdg.portal = {
     enable = true;
-    extraPortals = [ pkgs.xdg-desktop-portal-gtk pkgs.xdg-desktop-portal-wlr ];
-    config = {
-      common.default = [ "gtk" ];
-      niri = {
-        default                                      = [ "gtk" ];
-        "org.freedesktop.impl.portal.ScreenCast"    = [ "wlr" ];
-        "org.freedesktop.impl.portal.RemoteDesktop" = [ "wlr" ];
-        "org.freedesktop.impl.portal.FileChooser"   = [ "gtk" ];
-        "org.freedesktop.impl.portal.Settings"      = [ "gtk" ];
-      };
+    extraPortals = [ pkgs.xdg-desktop-portal-gnome pkgs.xdg-desktop-portal-gtk ];
+    config.niri = {
+      default                                      = [ "gtk" ];
+      "org.freedesktop.impl.portal.ScreenCast"    = [ "gnome" ];
+      "org.freedesktop.impl.portal.RemoteDesktop" = [ "gnome" ];
+      "org.freedesktop.impl.portal.FileChooser"   = [ "gtk" ];
+      "org.freedesktop.impl.portal.Settings"      = [ "gtk" ];
     };
   };
 
