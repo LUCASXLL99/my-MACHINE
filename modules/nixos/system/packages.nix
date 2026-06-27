@@ -56,8 +56,12 @@
       buildInputs = [ pkgs.makeWrapper ];
       postBuild = ''
         wrapProgram $out/bin/android-studio \
-          --set DISPLAY ":1" \
-          --set _JAVA_AWT_WM_NONREPARENTING "1"
+          --set   DISPLAY                     ":1" \
+          --set   _JAVA_AWT_WM_NONREPARENTING "1" \
+          --set   ELECTRON_PASSWORD_STORE      "basic" \
+          --set   SECRET_BACKEND              "gnome-libsecret" \
+          --add-flags "-Dawt.toolkit.name=WLToolkit" \
+          --add-flags "-Dsun.java2d.uiScale.enabled=true"
 
         apps="$out/share/applications"
         if [ -L "$apps" ]; then
