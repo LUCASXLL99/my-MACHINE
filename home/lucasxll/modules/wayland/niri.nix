@@ -100,6 +100,13 @@
 
     screenshot-path "~/Pictures/Screenshots/Screenshot_%Y-%m-%d_%H-%M-%S.png"
 
+    // ── HOT CORNERS ────────────────────────────────────────────────
+    gestures {
+        hot-corners {
+            top-right
+        }
+    }
+
     // ── STARTUP ────────────────────────────────────────────────────
     // sleep 1: garante que o socket niri está pronto antes de exportar.
     spawn-at-startup "sh" "-c" "sleep 1 && dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP NIRI_SOCKET DISPLAY"
