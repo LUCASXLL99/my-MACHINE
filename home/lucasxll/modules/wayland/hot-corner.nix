@@ -99,7 +99,8 @@ async def do_resync(reason=""):
     async with lock:
         cx = W / 2.0
         cy = H / 2.0
-    log(f"resync -> centro ({cx:.0f},{cy:.0f}){' [' + reason + ']' if reason else ''}")
+    suffix = (" [" + reason + "]") if reason else ""
+    log("resync -> centro (" + str(int(cx)) + "," + str(int(cy)) + ")" + suffix)
 
 # --- event-stream watcher (resync em ConfigLoaded = suspend/resume) ---
 async def niri_event_watcher():
