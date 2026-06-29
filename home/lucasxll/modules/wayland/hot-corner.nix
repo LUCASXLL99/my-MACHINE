@@ -12,7 +12,7 @@ let
 import asyncio, subprocess, os, glob, json, time, struct, ctypes
 from evdev import InputDevice, ecodes
 
-CORNER_SIZE = int(os.environ.get("HOT_CORNER_SIZE",    "24"))
+CORNER_SIZE = int(os.environ.get("HOT_CORNER_SIZE", "8"))
 COOLDOWN    = float(os.environ.get("HOT_CORNER_COOLDOWN", "1.2"))
 RESYNC_INTERVAL = 30.0  # segundos entre resyncs de posição
 
