@@ -1,15 +1,5 @@
 { config, pkgs, inputs, ... }:
 
-let
-  # Mesmo pacote que o NixOS configurou em programs.niri.package (agora
-  # niri-unstable, ver modules/nixos/software/niri.nix). Importante usar
-  # este e não pkgs.niri direto: "niri msg" fala um protocolo IPC que já
-  # mudou de formato entre versões (ex. sodiboo/niri-flake#944), então o
-  # client usado aqui pelo serviço precisa ser sempre o mesmo binário do
-  # compositor rodando — senão o autoplace pode silenciosamente parar de
-  # entender o event-stream depois de um bump de versão.
-  niriPkg = config.programs.niri.package or pkgs.niri;
-in
 {
   home.packages = with pkgs; [
     grim slurp
@@ -109,13 +99,6 @@ in
     }
 
     screenshot-path "~/Pictures/Screenshots/Screenshot_%Y-%m-%d_%H-%M-%S.png"
-
-    // ── HOT CORNERS ────────────────────────────────────────────────
-    gestures {
-        hot-corners {
-            top-right
-        }
-    }
 
     // ── STARTUP ────────────────────────────────────────────────────
     // sleep 1: garante que o socket niri está pronto antes de exportar.
@@ -309,7 +292,7 @@ in
         SEEN=$(mktemp -d /tmp/niri-autoplace-XXXXXX)
         trap 'rm -rf "$SEEN"' EXIT INT TERM
 
-        ${niriPkg}/bin/niri msg --json event-stream \
+        ${pkgs.niri}/bin/niri msg --json event-stream \
           | ${pkgs.jq}/bin/jq -c --unbuffered '
               select(.WindowOpenedOrChanged != null)
               | .WindowOpenedOrChanged.window
@@ -322,7 +305,7 @@ in
               [ -z "$wid" ] && continue
               if [ ! -f "$SEEN/$wid" ]; then
                 touch "$SEEN/$wid"
-                ${niriPkg}/bin/niri msg action move-column-to-first
+                ${pkgs.niri}/bin/niri msg action move-column-to-first
                 echo "niri-autoplace: '$app_id' (id=$wid)"
               fi
             done
