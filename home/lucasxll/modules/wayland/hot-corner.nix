@@ -1,5 +1,7 @@
 # Canto superior direito -> niri toggle-overview
 # Usa cursor-position do niri via IPC -- posicao real, sem drift de delta acumulado.
+# Escuta EV_REL (movimento real) para evitar IPC excessivo via EV_SYN.
+# Checa data is not None para lidar com niri retornando null fora de janelas.
 
 { pkgs, ... }:
 
@@ -50,7 +52,7 @@ def get_cursor_pos():
         r = niri_cmd("-j", "cursor-position")
         if r.returncode == 0:
             data = json.loads(r.stdout)
-            if data:
+            if data is not None:  # niri retorna null (= None) quando cursor está fora de janela
                 return float(data["x"]), float(data["y"])
     except Exception:
         pass
@@ -95,7 +97,7 @@ async def handle(dev):
     print(f"[hot-corner] +{dev.name} ({dev.path})", flush=True)
     try:
         async for ev in dev.async_read_loop():
-            if ev.type != ecodes.EV_SYN:
+            if ev.type != ecodes.EV_REL:  # só processar quando houver movimento real
                 continue
             pos = get_cursor_pos()
             if pos is None:
