@@ -1,6 +1,6 @@
 # Canto superior direito -> niri toggle-overview
-# Usa delta acumulado de REL_X/REL_Y (evdev) -- cursor-position nao existe nesta versao do niri.
-# Resync periodico via niri msg outputs para evitar drift.
+# niri 25.08 nao tem cursor-position -- usa delta REL_X/REL_Y.
+# Resync via niri event-stream: ConfigLoaded (suspend/resume) e idle timeout.
 
 { pkgs, ... }:
 
@@ -8,14 +8,26 @@ let
   python = pkgs.python3.withPackages (ps: [ ps.evdev ]);
 
   script = pkgs.writeShellScriptBin "niri-hot-corner-right" ''
-    exec ${python}/bin/python3 - << 'PYEOF'
+    exec ${python}/bin/python3 << 'PYEOF'
 import asyncio, subprocess, os, glob, json, time, struct, ctypes
 from evdev import InputDevice, ecodes
 
-CORNER_SIZE = int(os.environ.get("HOT_CORNER_SIZE", "8"))
-COOLDOWN    = float(os.environ.get("HOT_CORNER_COOLDOWN", "1.2"))
-RESYNC_INTERVAL = 30.0  # segundos entre resyncs de posição
+CORNER_SIZE   = int(os.environ.get("HOT_CORNER_SIZE",    "8"))
+COOLDOWN      = float(os.environ.get("HOT_CORNER_COOLDOWN", "1.2"))
+IDLE_RESYNC   = float(os.environ.get("HOT_CORNER_IDLE",    "10.0"))
 
+# --- estado global ---
+W = H = 0
+cx = cy = 0.0
+last_move    = 0.0
+last_trigger = 0.0
+monitored    = set()
+lock         = None   # asyncio.Lock, criado em main()
+
+def log(msg):
+    print(f"[hot-corner] {msg}", flush=True)
+
+# --- niri helpers ---
 def niri_env():
     env  = {**os.environ}
     hits = glob.glob(f"/run/user/{os.getuid()}/niri.*.sock")
@@ -24,9 +36,10 @@ def niri_env():
         env["NIRI_SOCKET"] = sock
     return env
 
-def niri_cmd(*args):
+def niri_cmd(*args, timeout=3):
     return subprocess.run(["niri", "msg", *args],
-                          capture_output=True, text=True, timeout=3, env=niri_env())
+                          capture_output=True, text=True,
+                          timeout=timeout, env=niri_env())
 
 def get_screen_dims():
     for attempt in range(20):
@@ -34,7 +47,8 @@ def get_screen_dims():
             r = niri_cmd("-j", "outputs")
             if r.returncode == 0:
                 for out in json.loads(r.stdout).values():
-                    idx, modes = out.get("current_mode"), out.get("modes", [])
+                    idx   = out.get("current_mode")
+                    modes = out.get("modes", [])
                     if not modes:
                         continue
                     m     = modes[idx] if isinstance(idx, int) else modes[0]
@@ -42,68 +56,99 @@ def get_screen_dims():
                     return int(m["width"] / scale), int(m["height"] / scale)
         except Exception:
             pass
-        print(f"[hot-corner] aguardando niri... ({attempt+1}/20)", flush=True)
+        log(f"aguardando niri... ({attempt+1}/20)")
         time.sleep(1)
-    print("[hot-corner] fallback 1920x1080", flush=True)
+    log("fallback 1920x1080")
     return 1920, 1080
 
 def trigger():
     niri_cmd("action", "toggle-overview")
 
-def _safe_name(path):
+# --- deteccao de dispositivos ---
+def _caps(path):
+    try:
+        return InputDevice(path).capabilities()
+    except Exception:
+        return {}
+
+def is_mouse(path):
+    caps = _caps(path)
+    rel  = caps.get(ecodes.EV_REL, [])
+    return ecodes.REL_X in rel and ecodes.REL_Y in rel
+
+def _name(path):
     try:
         return InputDevice(path).name
     except Exception:
         return ""
 
-def is_mouse(path):
-    try:
-        caps = InputDevice(path).capabilities()
-        rel  = caps.get(ecodes.EV_REL, [])
-        return ecodes.REL_X in rel and ecodes.REL_Y in rel
-    except Exception:
-        return False
-
-def has_inv():
-    return any(
-        "[inv]" in InputDevice(p).name
-        for p in glob.glob("/dev/input/event*")
-        if _safe_name(p)
-    )
+def has_inv_devices():
+    return any("[inv]" in _name(p) for p in glob.glob("/dev/input/event*"))
 
 def should_monitor(path):
     if not is_mouse(path):
         return False
-    name = _safe_name(path)
-    return ("[inv]" in name) if has_inv() else bool(name)
+    name = _name(path)
+    if not name:
+        return False
+    return ("[inv]" in name) if has_inv_devices() else True
 
-W = H = 0
-cx = cy = 0.0
-last_trigger = 0.0
-last_resync  = 0.0
-monitored    = set()
-state_lock   = None  # inicializado em main()
+# --- resync ---
+async def do_resync(reason=""):
+    global cx, cy
+    async with lock:
+        cx = W / 2.0
+        cy = H / 2.0
+    log(f"resync -> centro ({cx:.0f},{cy:.0f}){' [' + reason + ']' if reason else ''}")
 
-async def resync_loop():
-    """Periodicamente reseta cx/cy para o centro da tela para evitar drift."""
-    global cx, cy, last_resync, W, H
+# --- event-stream watcher (resync em ConfigLoaded = suspend/resume) ---
+async def niri_event_watcher():
+    env = niri_env()
     while True:
-        await asyncio.sleep(RESYNC_INTERVAL)
-        # Só reseta se não houve trigger recente (cursor provavelmente não está no canto)
-        if time.monotonic() - last_trigger > 5.0:
-            async with state_lock:
-                cx = W / 2.0
-                cy = H / 2.0
-            print(f"[hot-corner] resync -> centro ({cx:.0f},{cy:.0f})", flush=True)
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                "niri", "msg", "event-stream",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.DEVNULL,
+                env=env,
+            )
+            async for raw in proc.stdout:
+                line = raw.decode(errors="ignore").strip()
+                if not line:
+                    continue
+                try:
+                    ev = json.loads(line)
+                except Exception:
+                    continue
+                if "ConfigLoaded" in ev:
+                    log("niri recarregou (suspend/resume?) -> resync")
+                    await do_resync("ConfigLoaded")
+            await proc.wait()
+        except Exception as e:
+            log(f"event-stream erro: {e}")
+        await asyncio.sleep(3)
 
+# --- idle watcher (resync se mouse parado > IDLE_RESYNC segundos) ---
+async def idle_watcher():
+    while True:
+        await asyncio.sleep(2)
+        idle = time.monotonic() - last_move
+        if idle >= IDLE_RESYNC and (time.monotonic() - last_trigger) > 5.0:
+            await do_resync(f"idle {idle:.0f}s")
+            # reseta last_move para nao fazer resync em loop
+            global last_move
+            last_move = time.monotonic()
+
+# --- handler de dispositivo ---
 async def handle(dev):
-    global cx, cy, last_trigger
-    print(f"[hot-corner] +{dev.name} ({dev.path})", flush=True)
+    global cx, cy, last_move, last_trigger
+    log(f"+{dev.name} ({dev.path})")
     try:
         async for ev in dev.async_read_loop():
             if ev.type != ecodes.EV_REL:
                 continue
-            async with state_lock:
+            last_move = time.monotonic()
+            async with lock:
                 if ev.code == ecodes.REL_X:
                     cx = max(0.0, min(float(W), cx + ev.value))
                 elif ev.code == ecodes.REL_Y:
@@ -112,11 +157,11 @@ async def handle(dev):
             if in_corner:
                 now = time.monotonic()
                 if now - last_trigger >= COOLDOWN:
-                    print(f"[hot-corner] trigger! ({cx:.0f},{cy:.0f})", flush=True)
+                    log(f"trigger! ({cx:.0f},{cy:.0f})")
                     trigger()
                     last_trigger = now
     except Exception as e:
-        print(f"[hot-corner] -{dev.name} ({e})", flush=True)
+        log(f"-{dev.name} ({e})")
     finally:
         monitored.discard(dev.path)
 
@@ -127,9 +172,10 @@ def spawn(path):
     try:
         asyncio.ensure_future(handle(InputDevice(path)))
     except Exception as e:
-        print(f"[hot-corner] erro {path}: {e}", flush=True)
+        log(f"erro ao abrir {path}: {e}")
         monitored.discard(path)
 
+# --- inotify watcher para hot-plug ---
 async def device_watcher():
     libc      = ctypes.cdll.LoadLibrary("libc.so.6")
     IN_CREATE = 0x00000100
@@ -137,9 +183,8 @@ async def device_watcher():
     HDR       = struct.Struct("iIII")
     ifd       = libc.inotify_init()
     libc.inotify_add_watch(ifd, b"/dev/input", IN_CREATE | IN_DELETE)
-    loop      = asyncio.get_event_loop()
-    f         = os.fdopen(ifd, "rb", 0)
-
+    loop = asyncio.get_event_loop()
+    f    = os.fdopen(ifd, "rb", 0)
     while True:
         data = await loop.run_in_executor(None, f.read, HDR.size + 256)
         if not data:
@@ -155,15 +200,18 @@ async def device_watcher():
         elif mask & IN_DELETE:
             monitored.discard(path)
 
+# --- main ---
 async def main():
-    global W, H, cx, cy, state_lock
-    state_lock = asyncio.Lock()
-    W, H   = get_screen_dims()
-    cx, cy = W / 2.0, H / 2.0
-    print(f"[hot-corner] {W}x{H} corner={CORNER_SIZE}px cooldown={COOLDOWN}s", flush=True)
+    global W, H, cx, cy, last_move, lock
+    lock     = asyncio.Lock()
+    W, H     = get_screen_dims()
+    cx, cy   = W / 2.0, H / 2.0
+    last_move = time.monotonic()
+    log(f"{W}x{H} corner={CORNER_SIZE}px cooldown={COOLDOWN}s idle-resync={IDLE_RESYNC}s")
     for path in sorted(glob.glob("/dev/input/event*")):
         spawn(path)
-    asyncio.ensure_future(resync_loop())
+    asyncio.ensure_future(niri_event_watcher())
+    asyncio.ensure_future(idle_watcher())
     await device_watcher()
 
 asyncio.run(main())
