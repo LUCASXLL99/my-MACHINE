@@ -46,6 +46,10 @@
             })
             opencode-nix.overlays.default
             (_: _: { pi-coding-agent = pkgs-unstable.pi-coding-agent; })
+            # Expõe pkgs.niri-stable e pkgs.niri-unstable (build casado com
+            # nossa versão do nixpkgs — necessário pro binário do cache em
+            # niri.cachix.org bater com o mesmo mesa/etc).
+            niri.overlays.niri
           ];
         }
         niri.nixosModules.niri

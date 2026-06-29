@@ -1,5 +1,15 @@
 { config, pkgs, inputs, ... }:
 
+let
+  # Mesmo pacote que o NixOS configurou em programs.niri.package (agora
+  # niri-unstable, ver modules/nixos/software/niri.nix). Importante usar
+  # este e não pkgs.niri direto: "niri msg" fala um protocolo IPC que já
+  # mudou de formato entre versões (ex. sodiboo/niri-flake#944), então o
+  # client usado aqui pelo serviço precisa ser sempre o mesmo binário do
+  # compositor rodando — senão o autoplace pode silenciosamente parar de
+  # entender o event-stream depois de um bump de versão.
+  niriPkg = config.programs.niri.package or pkgs.niri;
+in
 {
   home.packages = with pkgs; [
     grim slurp
@@ -299,7 +309,7 @@
         SEEN=$(mktemp -d /tmp/niri-autoplace-XXXXXX)
         trap 'rm -rf "$SEEN"' EXIT INT TERM
 
-        ${pkgs.niri}/bin/niri msg --json event-stream \
+        ${niriPkg}/bin/niri msg --json event-stream \
           | ${pkgs.jq}/bin/jq -c --unbuffered '
               select(.WindowOpenedOrChanged != null)
               | .WindowOpenedOrChanged.window
@@ -312,7 +322,7 @@
               [ -z "$wid" ] && continue
               if [ ! -f "$SEEN/$wid" ]; then
                 touch "$SEEN/$wid"
-                ${pkgs.niri}/bin/niri msg action move-column-to-first
+                ${niriPkg}/bin/niri msg action move-column-to-first
                 echo "niri-autoplace: '$app_id' (id=$wid)"
               fi
             done
