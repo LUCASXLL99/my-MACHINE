@@ -1,7 +1,6 @@
 # Canto superior direito -> niri toggle-overview
-# Usa cursor-position do niri via IPC -- posicao real, sem drift de delta acumulado.
-# Escuta EV_REL (movimento real) para evitar IPC excessivo via EV_SYN.
-# Checa data is not None para lidar com niri retornando null fora de janelas.
+# Usa delta acumulado de REL_X/REL_Y (evdev) -- cursor-position nao existe nesta versao do niri.
+# Resync periodico via niri msg outputs para evitar drift.
 
 { pkgs, ... }:
 
@@ -15,6 +14,7 @@ from evdev import InputDevice, ecodes
 
 CORNER_SIZE = int(os.environ.get("HOT_CORNER_SIZE",    "24"))
 COOLDOWN    = float(os.environ.get("HOT_CORNER_COOLDOWN", "1.2"))
+RESYNC_INTERVAL = 30.0  # segundos entre resyncs de posição
 
 def niri_env():
     env  = {**os.environ}
@@ -47,17 +47,6 @@ def get_screen_dims():
     print("[hot-corner] fallback 1920x1080", flush=True)
     return 1920, 1080
 
-def get_cursor_pos():
-    try:
-        r = niri_cmd("-j", "cursor-position")
-        if r.returncode == 0:
-            data = json.loads(r.stdout)
-            if data is not None:  # niri retorna null (= None) quando cursor está fora de janela
-                return float(data["x"]), float(data["y"])
-    except Exception:
-        pass
-    return None
-
 def trigger():
     niri_cmd("action", "toggle-overview")
 
@@ -89,25 +78,41 @@ def should_monitor(path):
     return ("[inv]" in name) if has_inv() else bool(name)
 
 W = H = 0
+cx = cy = 0.0
 last_trigger = 0.0
+last_resync  = 0.0
 monitored    = set()
+state_lock   = None  # inicializado em main()
+
+async def resync_loop():
+    """Periodicamente reseta cx/cy para o centro da tela para evitar drift."""
+    global cx, cy, last_resync, W, H
+    while True:
+        await asyncio.sleep(RESYNC_INTERVAL)
+        # Só reseta se não houve trigger recente (cursor provavelmente não está no canto)
+        if time.monotonic() - last_trigger > 5.0:
+            async with state_lock:
+                cx = W / 2.0
+                cy = H / 2.0
+            print(f"[hot-corner] resync -> centro ({cx:.0f},{cy:.0f})", flush=True)
 
 async def handle(dev):
-    global last_trigger
+    global cx, cy, last_trigger
     print(f"[hot-corner] +{dev.name} ({dev.path})", flush=True)
     try:
         async for ev in dev.async_read_loop():
-            if ev.type != ecodes.EV_REL:  # só processar quando houver movimento real
+            if ev.type != ecodes.EV_REL:
                 continue
-            pos = get_cursor_pos()
-            if pos is None:
-                continue
-            x, y = pos
-            in_corner = x >= W - CORNER_SIZE and y <= CORNER_SIZE
+            async with state_lock:
+                if ev.code == ecodes.REL_X:
+                    cx = max(0.0, min(float(W), cx + ev.value))
+                elif ev.code == ecodes.REL_Y:
+                    cy = max(0.0, min(float(H), cy + ev.value))
+                in_corner = cx >= W - CORNER_SIZE and cy <= CORNER_SIZE
             if in_corner:
                 now = time.monotonic()
                 if now - last_trigger >= COOLDOWN:
-                    print(f"[hot-corner] trigger! ({x:.0f},{y:.0f})", flush=True)
+                    print(f"[hot-corner] trigger! ({cx:.0f},{cy:.0f})", flush=True)
                     trigger()
                     last_trigger = now
     except Exception as e:
@@ -151,11 +156,14 @@ async def device_watcher():
             monitored.discard(path)
 
 async def main():
-    global W, H
-    W, H = get_screen_dims()
+    global W, H, cx, cy, state_lock
+    state_lock = asyncio.Lock()
+    W, H   = get_screen_dims()
+    cx, cy = W / 2.0, H / 2.0
     print(f"[hot-corner] {W}x{H} corner={CORNER_SIZE}px cooldown={COOLDOWN}s", flush=True)
     for path in sorted(glob.glob("/dev/input/event*")):
         spawn(path)
+    asyncio.ensure_future(resync_loop())
     await device_watcher()
 
 asyncio.run(main())
