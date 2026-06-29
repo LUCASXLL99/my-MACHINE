@@ -131,13 +131,12 @@ async def niri_event_watcher():
 
 # --- idle watcher (resync se mouse parado > IDLE_RESYNC segundos) ---
 async def idle_watcher():
+    global last_move
     while True:
         await asyncio.sleep(2)
         idle = time.monotonic() - last_move
         if idle >= IDLE_RESYNC and (time.monotonic() - last_trigger) > 5.0:
-            await do_resync(f"idle {idle:.0f}s")
-            # reseta last_move para nao fazer resync em loop
-            global last_move
+            await do_resync("idle " + str(int(idle)) + "s")
             last_move = time.monotonic()
 
 # --- handler de dispositivo ---
