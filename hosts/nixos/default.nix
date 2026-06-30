@@ -25,7 +25,7 @@
     inputs.stylix.nixosModules.stylix
   ];
 
-  # ── Stylix ───────────────────────────────────────────────────────────────────
+  # stylix
   stylix.base16Scheme = {
     scheme = "Tokyo Night Dark";
     author = "lucasxll (adaptado de enkia/tokyo-night-vscode-theme)";
@@ -44,7 +44,7 @@
     sizes     = { terminal = 13; applications = 11; desktop = 11; };
   };
 
-  # ── Home Manager ─────────────────────────────────────────────────────────────
+  # home-manager
   home-manager = {
     useGlobalPkgs       = true;
     useUserPackages     = true;
@@ -57,14 +57,12 @@
     users.lucasxll = import ../../home/lucasxll/default.nix;
   };
 
-  # ── Hardware ─────────────────────────────────────────────────────────────────
+  # hardware
   hardware.bluetooth.enable    = true;
   hardware.keyboard.qmk.enable = true;
   services.pulseaudio.enable   = false;
 
-  # ── Display ──────────────────────────────────────────────────────────────────
-  # xserver.enable mantém a sessão bspwm disponível no SDDM.
-  # lightdm.enable = false: evita display-manager secundário.
+  # display
   services.xserver = {
     enable      = true;
     xkb.layout  = "br";
@@ -73,7 +71,7 @@
     displayManager.lightdm.enable = false;
   };
 
-  # ── Áudio ────────────────────────────────────────────────────────────────────
+  # audio
   security.rtkit.enable = true;
   services.pipewire = {
     enable = true; alsa.enable = true;
@@ -81,7 +79,7 @@
     wireplumber.enable = true;
   };
 
-  # ── Serviços ─────────────────────────────────────────────────────────────────
+  # servicos
   services.upower.enable         = true;
   services.printing.enable       = true;
   services.udisks2.enable        = true;
@@ -108,7 +106,7 @@
       TAG+="systemd", ENV{SYSTEMD_USER_WANTS}="mouse-invert-y.service"
   '';
 
-  # ── Portal XDG ───────────────────────────────────────────────────────────────
+  # portal xdg
   xdg.portal = {
     enable = true;
     extraPortals = [ pkgs.xdg-desktop-portal-gnome pkgs.xdg-desktop-portal-gtk ];
@@ -121,7 +119,7 @@
     };
   };
 
-  # ── Energia ──────────────────────────────────────────────────────────────────
+  # energia
   services.power-profiles-daemon.enable = false;
   services.auto-cpufreq = {
     enable = true;
@@ -151,14 +149,14 @@
     };
   };
 
-  # ── Virtualização ─────────────────────────────────────────────────────────────
+  # virtualizacao
   virtualisation.docker = {
     enable = true;
     daemon.settings.shutdown-timeout = 10;
   };
   systemd.services.docker.serviceConfig.TimeoutStopSec = "15s";
 
-  # ── Nix ───────────────────────────────────────────────────────────────────────
+  # nix
   nix.settings = {
     experimental-features = [ "nix-command" "flakes" ];
     auto-optimise-store   = true;

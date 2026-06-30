@@ -16,7 +16,7 @@ CORNER_SIZE   = int(os.environ.get("HOT_CORNER_SIZE",    "8"))
 COOLDOWN      = float(os.environ.get("HOT_CORNER_COOLDOWN", "1.2"))
 IDLE_RESYNC   = float(os.environ.get("HOT_CORNER_IDLE",    "10.0"))
 
-# --- estado global ---
+# estado
 W = H = 0
 cx = cy = 0.0
 last_move    = 0.0
@@ -27,7 +27,7 @@ lock         = None   # asyncio.Lock, criado em main()
 def log(msg):
     print(f"[hot-corner] {msg}", flush=True)
 
-# --- niri helpers ---
+# niri ipc
 def niri_env():
     env  = {**os.environ}
     hits = glob.glob(f"/run/user/{os.getuid()}/niri.*.sock")
@@ -64,7 +64,7 @@ def get_screen_dims():
 def trigger():
     niri_cmd("action", "toggle-overview")
 
-# --- deteccao de dispositivos ---
+# deteccao de mouses
 def _caps(path):
     try:
         return InputDevice(path).capabilities()
@@ -93,7 +93,6 @@ def should_monitor(path):
         return False
     return ("[inv]" in name) if has_inv_devices() else True
 
-# --- resync ---
 async def do_resync(reason=""):
     global cx, cy
     async with lock:
@@ -102,7 +101,7 @@ async def do_resync(reason=""):
     suffix = (" [" + reason + "]") if reason else ""
     log("resync -> centro (" + str(int(cx)) + "," + str(int(cy)) + ")" + suffix)
 
-# --- event-stream watcher (resync em ConfigLoaded = suspend/resume) ---
+# resync ao acordar do suspend
 async def niri_event_watcher():
     env = niri_env()
     while True:
@@ -129,7 +128,7 @@ async def niri_event_watcher():
             log(f"event-stream erro: {e}")
         await asyncio.sleep(3)
 
-# --- idle watcher (resync se mouse parado > IDLE_RESYNC segundos) ---
+# resync apos mouse parado
 async def idle_watcher():
     global last_move
     while True:
@@ -139,7 +138,6 @@ async def idle_watcher():
             await do_resync("idle " + str(int(idle)) + "s")
             last_move = time.monotonic()
 
-# --- handler de dispositivo ---
 async def handle(dev):
     global cx, cy, last_move, last_trigger
     log(f"+{dev.name} ({dev.path})")
@@ -175,7 +173,7 @@ def spawn(path):
         log(f"erro ao abrir {path}: {e}")
         monitored.discard(path)
 
-# --- inotify watcher para hot-plug ---
+# hot-plug de dispositivos
 async def device_watcher():
     libc      = ctypes.cdll.LoadLibrary("libc.so.6")
     IN_CREATE = 0x00000100
@@ -200,7 +198,6 @@ async def device_watcher():
         elif mask & IN_DELETE:
             monitored.discard(path)
 
-# --- main ---
 async def main():
     global W, H, cx, cy, last_move, lock
     lock     = asyncio.Lock()
