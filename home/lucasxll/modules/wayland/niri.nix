@@ -384,6 +384,38 @@
     Install.WantedBy = [ "niri.service" ];
   };
 
+  # ── PORTAL FIX (screencast) ─────────────────────────────────────────────────
+  # Bug conhecido do niri: mesmo com tudo certo (xdg-desktop-portal-gnome
+  # funcionando, ScreenCast roteado pra "gnome"), às vezes o
+  # xdg-desktop-portal.service "trava" a interface ScreenCast como
+  # indisponível se ele subiu antes do -gnome estar pronto na sessão. O fix
+  # conhecido da comunidade (github niri-wm/niri#2399) é parar os 3 portals
+  # envolvidos e subir 2 de volta, nessa ordem. Fazemos isso automaticamente
+  # toda vez que o niri inicia, pra nunca mais depender de rodar isso na mão
+  # antes de uma gravação/demo pro cliente.
+  systemd.user.services.niri-portal-fix = {
+    Unit = {
+      Description = "Corrige bug do niri onde o portal de ScreenCast não sobe certo";
+      After       = [ "niri.service" "xdg-desktop-portal.service" "xdg-desktop-portal-gnome.service" ];
+      BindsTo     = [ "niri.service" ];
+    };
+    Service = {
+      Type      = "oneshot";
+      ExecStart = pkgs.writeShellScript "niri-portal-fix" ''
+        set -e
+        systemctl --user stop \
+          xdg-desktop-portal.service \
+          xdg-desktop-portal-gnome.service \
+          xdg-desktop-portal-gtk.service 2>/dev/null || true
+        sleep 1
+        systemctl --user start xdg-desktop-portal-gnome.service
+        sleep 1
+        systemctl --user start xdg-desktop-portal.service
+      '';
+    };
+    Install.WantedBy = [ "niri.service" ];
+  };
+
   # ── OVERRIDES ──────────────────────────────────────────────────────────────
   # IMPORTANTE: `systemd.user.services.<nome> = { ... }` no Home Manager GERA
   # o unit inteiro do zero — não é um "acrescenta uma opção", é "substitui o
