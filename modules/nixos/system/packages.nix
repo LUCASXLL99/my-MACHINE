@@ -26,6 +26,10 @@
     OPENSSL_LIB_DIR = "${pkgs.openssl.out}/lib";
     PATH            = "$HOME/.cargo/bin:$PATH";
     WASM_OPT        = "${pkgs.binaryen}/bin/wasm-opt";
+    # AMD: garante que VAAPI/VDPAU usem o driver mesa (radeonsi), necessário
+    # pro plugin obs-vaapi e pra encode de hardware funcionarem certo.
+    LIBVA_DRIVER_NAME = "radeonsi";
+    VDPAU_DRIVER      = "radeonsi";
   };
 
   environment.pathsToLink = [
@@ -144,6 +148,7 @@
     # v4l-utils: inspecionar/gerenciar o /dev/video da câmera virtual
     # (v4l2loopback, habilitado em modules/nixos/system/boot.nix)
     v4l-utils
+    libva-utils # `vainfo` — confirma se a aceleração AMD/VAAPI está ativa
 
     # streamlink não incluso (não há pedido de assistir/repassar streams,
     # só gravar/transmitir a demo — adicionar depois se precisar)

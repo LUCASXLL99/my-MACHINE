@@ -62,6 +62,17 @@
   hardware.keyboard.qmk.enable = true;
   services.pulseaudio.enable   = false;
 
+  # GPU (AMD/mesa) — sem isso, captura de tela via PipeWire (OBS) fica preta,
+  # pois depende de DMA-BUF/VAAPI que só existe com aceleração habilitada.
+  hardware.graphics = {
+    enable       = true;
+    enable32Bit  = true; # útil p/ apps 32-bit (ex: alguns emuladores/jogos), sem custo real
+    extraPackages = with pkgs; [
+      mesa
+      libva
+    ];
+  };
+
   # display
   services.xserver = {
     enable      = true;
