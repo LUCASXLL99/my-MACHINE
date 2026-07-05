@@ -408,6 +408,10 @@
   '';
   xdg.configFile."systemd/user/xdg-desktop-portal-gnome.service.d/override.conf".text = ''
     [Unit]
-    ConditionEnvironment=!NIRI_SOCKET
+    # Invertido antes (!NIRI_SOCKET desligava o serviço justo quando o niri
+    # está ativo). O portal-gnome é quem expõe a interface de ScreenCast que
+    # o niri simula (org.gnome.Mutter.ScreenCast) — ele precisa rodar COM o
+    # niri, não sem ele.
+    ConditionEnvironment=NIRI_SOCKET
   '';
 }
