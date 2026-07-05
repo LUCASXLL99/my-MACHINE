@@ -385,19 +385,29 @@
   };
 
   # ── OVERRIDES ──────────────────────────────────────────────────────────────
-  # picom: sem função no Wayland (niri faz compositing nativo)
-  systemd.user.services.picom = {
-    Unit.ConditionEnvironment = "!NIRI_SOCKET";
-  };
-  systemd.user.services."app-picom@autostart" = {
-    Unit.ConditionEnvironment = "!NIRI_SOCKET";
-  };
-  # dunst: conflita com notificações do noctalia pelo D-Bus
-  systemd.user.services.dunst = {
-    Unit.Conflicts = "niri.service";
-  };
-  # portal-gnome: conflita com portal-gtk para file chooser no Wayland
-  systemd.user.services.xdg-desktop-portal-gnome = {
-    Unit.ConditionEnvironment = "!NIRI_SOCKET";
-  };
+  # IMPORTANTE: `systemd.user.services.<nome> = { ... }` no Home Manager GERA
+  # o unit inteiro do zero — não é um "acrescenta uma opção", é "substitui o
+  # arquivo de serviço inteiro". Como esses três units vêm de pacotes (picom,
+  # dunst, xdg-desktop-portal-gnome) e já têm seu próprio ExecStart=, usar essa
+  # opção apagava o ExecStart= original e o systemd recusava o unit ("Service
+  # has no ExecStart=... Refusing"). Isso quebrava silenciosamente o portal de
+  # ScreenCast (OBS não conseguia oferecer captura de tela).
+  # Fix: usar drop-ins de verdade (.service.d/override.conf), que só
+  # sobrescrevem a diretiva indicada e preservam o resto do unit original.
+  xdg.configFile."systemd/user/picom.service.d/override.conf".text = ''
+    [Unit]
+    ConditionEnvironment=!NIRI_SOCKET
+  '';
+  xdg.configFile."systemd/user/app-picom@autostart.service.d/override.conf".text = ''
+    [Unit]
+    ConditionEnvironment=!NIRI_SOCKET
+  '';
+  xdg.configFile."systemd/user/dunst.service.d/override.conf".text = ''
+    [Unit]
+    Conflicts=niri.service
+  '';
+  xdg.configFile."systemd/user/xdg-desktop-portal-gnome.service.d/override.conf".text = ''
+    [Unit]
+    ConditionEnvironment=!NIRI_SOCKET
+  '';
 }
