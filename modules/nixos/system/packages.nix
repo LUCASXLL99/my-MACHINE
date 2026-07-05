@@ -126,5 +126,26 @@
     lazydocker dive
 
     wireshark fx
+
+    # ── Gravação / streaming (demo p/ cliente) ──────────────────────────
+    # OBS: captura de tela via portal PipeWire (niri expõe a interface
+    # org.gnome.Mutter.ScreenCast, então o portal-gnome já configurado
+    # funciona sem precisar do xdg-desktop-portal-wlr).
+    obs-studio
+    obs-studio-plugins.obs-pipewire-audio-capture
+    obs-studio-plugins.obs-vaapi
+    obs-studio-plugins.obs-vkcapture
+
+    # Alternativas CLI leves (já usadas via nix-shell no handoff — agora
+    # permanentes, sem precisar baixar de novo a cada gravação)
+    wf-recorder
+    ffmpeg-full
+
+    # v4l-utils: inspecionar/gerenciar o /dev/video da câmera virtual
+    # (v4l2loopback, habilitado em modules/nixos/system/boot.nix)
+    v4l-utils
+
+    # streamlink não incluso (não há pedido de assistir/repassar streams,
+    # só gravar/transmitir a demo — adicionar depois se precisar)
   ];
 }

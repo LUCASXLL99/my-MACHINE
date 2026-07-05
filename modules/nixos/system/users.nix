@@ -19,6 +19,7 @@
         "libvirt" "libvirtd" "kvm" "qemu-libvirtd"
         "adbusers" "uucp" "uinput" "input" "plugdev"
         "usb" "disk" "cdrom"
+        "video" "audio" # v4l2loopback (câmera virtual OBS) + captura de áudio
       ];
       hashedPassword = "$6$6PEfHzY1BpSqVGXG$j1j7Chn4nt3ehnojWM2mZMaof2LhA2MTN48MNGFzlqZPHjxbgMatRWNU34D6yC5aoeGk1pVc9aTQzc07Px.s8.";
       packages = [];
