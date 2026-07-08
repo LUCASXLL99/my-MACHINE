@@ -29,6 +29,19 @@
         }
       ];
     };
+    # Evita que o node bluez seja suspenso após ficar ocioso.
+    # É esse suspend que costuma fazer o áudio "sumir" e nunca mais
+    # voltar mesmo com o headfone continuando conectado.
+    "bluez-no-suspend" = {
+      "monitor.bluez.rules" = [
+        {
+          matches = [ { "node.name" = "~bluez_output.*"; } ];
+          actions.update-props = {
+            "session.suspend-timeout-seconds" = 0;
+          };
+        }
+      ];
+    };
   };
 
   environment.systemPackages = [ pkgs.playerctl ];
