@@ -32,6 +32,14 @@
     VDPAU_DRIVER      = "radeonsi";
   };
 
+  # kbuildsycoca6 exige um applications.menu (freedesktop Menu Spec) em
+  # /etc/xdg/menus — normalmente vem do desktop environment completo
+  # (Plasma/GNOME), que não temos rodando (niri é standalone). Sem ele,
+  # o Dolphin não lista nenhum app no diálogo "Abrir com". Reaproveita o
+  # gnome-applications.menu do gnome-menus (pacote leve) só renomeado.
+  environment.etc."xdg/menus/applications.menu".source =
+    "${pkgs.gnome-menus}/etc/xdg/menus/gnome-applications.menu";
+
   environment.pathsToLink = [
     "/share/kservices5"
     "/share/kservices5/ServiceMenus"
