@@ -53,6 +53,10 @@
     vivaldi obsidian onlyoffice-bin_latest gnome-disk-utility
     rofi
     kdePackages.dolphin kdePackages.ark
+    # kbuildsycoca6: sem sessão Plasma completa (niri), ninguém mantém o
+    # cache de serviços/MIME do KDE atualizado — sem isso, "Abrir com" no
+    # Dolphin não lista nenhum app instalado.
+    kdePackages.kservice
 
     (pkgs.symlinkJoin {
       name = "android-studio";
