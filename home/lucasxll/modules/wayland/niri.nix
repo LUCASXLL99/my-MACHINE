@@ -107,8 +107,8 @@
     spawn-at-startup "sh" "-c" "sleep 2 && systemctl --user restart mouse-invert-y"
     spawn-at-startup "sh" "-c" "sleep 5 && nm-applet --indicator"
     spawn-at-startup "sh" "-c" "sleep 5 && systemctl --user start niri-blueman-applet"
-    # Sem sessão Plasma, não há kded rodando pra manter o ksycoca em dia —
-    # sem isso, "Abrir com" no Dolphin fica sem listar nenhum app instalado.
+    // Sem sessão Plasma, não há kded rodando pra manter o ksycoca em dia —
+    // sem isso, "Abrir com" no Dolphin fica sem listar nenhum app instalado.
     spawn-at-startup "sh" "-c" "sleep 2 && kbuildsycoca6 --noincremental"
     // noctalia-shell, copyq, mpvpaper, xwayland-satellite → serviços systemd
 
