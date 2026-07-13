@@ -20,6 +20,7 @@
     ../../modules/nixos/software/niri.nix
     ../../modules/nixos/software/rust-dev.nix
     ../../modules/nixos/software/wallcards.nix
+    ../../modules/nixos/software/kbuildsycoca-autofix.nix
 
     inputs.home-manager.nixosModules.home-manager
     inputs.stylix.nixosModules.stylix
