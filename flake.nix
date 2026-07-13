@@ -30,24 +30,31 @@
   let
     system        = "x86_64-linux";
     pkgs-unstable = inputs.nixpkgs-unstable.legacyPackages.${system};
+
+    # Overlays e allowUnfree entram aqui, na instanciação do pkgs — não como
+    # as opções `nixpkgs.overlays`/`nixpkgs.config`. Com
+    # `home-manager.useGlobalPkgs = true`, o home-manager exige que essas
+    # opções fiquem de fora; o pkgs pronto é repassado via `nixpkgs.pkgs`
+    # logo abaixo, o que evita o warning (e o futuro erro de avaliação).
+    pkgs = import nixpkgs {
+      inherit system;
+      config.allowUnfree = true;
+      overlays = [
+        (_: prev: {
+          makeModulesClosure = x:
+            prev.makeModulesClosure (x // { allowMissing = true; });
+        })
+        opencode-nix.overlays.default
+        (_: _: { pi-coding-agent = pkgs-unstable.pi-coding-agent; })
+      ];
+    };
   in
   {
     nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
       inherit system;
       specialArgs = { inherit inputs pkgs-unstable; };
       modules = [
-        {
-          nixpkgs.config.allowUnfree = true;
-          # Overlays e allowUnfree aqui — fora do home-manager.useGlobalPkgs.
-          nixpkgs.overlays = [
-            (_: prev: {
-              makeModulesClosure = x:
-                prev.makeModulesClosure (x // { allowMissing = true; });
-            })
-            opencode-nix.overlays.default
-            (_: _: { pi-coding-agent = pkgs-unstable.pi-coding-agent; })
-          ];
-        }
+        { nixpkgs.pkgs = pkgs; }
         niri.nixosModules.niri
         ./hosts/nixos/default.nix
       ];
