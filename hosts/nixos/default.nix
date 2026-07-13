@@ -53,7 +53,6 @@
     backupFileExtension = "backup";
     sharedModules = [
       inputs.stylix.homeModules.stylix
-      { nixpkgs.overlays = lib.mkForce []; }
     ];
     users.lucasxll = import ../../home/lucasxll/default.nix;
   };
