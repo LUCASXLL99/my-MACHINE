@@ -9,7 +9,6 @@
     ./modules/apps
     ./modules/hardware
     ./modules/misc
-    ./modules/terminal/wezterm.nix
   ];
   home.username      = "lucasxll";
   home.homeDirectory = "/home/lucasxll";

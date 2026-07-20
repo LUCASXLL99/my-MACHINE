@@ -70,6 +70,23 @@
           action = act.CompleteSelectionOrOpenLinkAtMouseCursor 'PrimarySelection',
         },
       }
+
+      -- Mata qualquer "piscada" de texto vinda de sequência ANSI (SGR 5/6 -
+      -- blink), que fazia todo comando parecer piscando na tela.
+      config.text_blink_rate = 0
+      config.text_blink_rate_rapid = 0
+
+      -- Cursor sólido, sem piscar.
+      config.cursor_blink_rate = 0
+      config.default_cursor_style = "SteadyBlock"
+
+      -- Bell silencioso, sem flash visual na tela.
+      config.audible_bell = "Disabled"
+      config.visual_bell = {
+        fade_in_duration_ms = 0,
+        fade_out_duration_ms = 0,
+      }
+
       return config
     '';
   };
