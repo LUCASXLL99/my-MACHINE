@@ -10,8 +10,10 @@
   programs.wezterm = {
     enable = true;
     # Não deixa o home-manager instalar outro pacote do wezterm — já
-    # vem do nível de sistema.
-    package = null;
+    # vem do nível de sistema. `package` exige um valor do tipo `package`
+    # (não aceita null), então apontamos para um pacote vazio como
+    # placeholder em vez de deixar o home-manager puxar sua própria cópia.
+    package = pkgs.emptyDirectory;
 
     extraConfig = ''
       local wezterm = require("wezterm")
