@@ -1,0 +1,38 @@
+# just --list  →  mostra todos os comandos disponíveis
+
+# Ambiente local (postgres/redis) via docker compose, se o projeto tiver compose.yml
+db-up:
+    docker compose up db redis -d
+
+db-down:
+    docker compose down
+
+# Roda migrations. Ajuste --source se usar workspace multi-crate:
+#   sqlx migrate run --source crates/db/migrations
+db-migrate:
+    sqlx migrate run
+
+db-reset:
+    sqlx database drop -y
+    sqlx database create
+    just db-migrate
+
+# Loop de desenvolvimento (bacon já configurado via bacon.toml)
+dev:
+    bacon
+
+# Atualiza o cache offline do sqlx (.sqlx/) — necessário antes de commit/CI/docker build
+prep:
+    cargo sqlx prepare --workspace -- --all-targets
+
+# Testes (script funcional/smoke, não cargo test genérico — ver test.sh)
+test:
+    ./test.sh
+
+check:
+    cargo check --workspace
+
+# Instala o hook de pre-commit deste template (roda `just prep` antes de cada commit)
+install-hooks:
+    git config core.hooksPath .githooks
+    chmod +x .githooks/pre-commit

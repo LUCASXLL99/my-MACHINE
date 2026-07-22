@@ -1,0 +1,18 @@
+# just --list  →  mostra todos os comandos disponíveis
+
+dev:
+    trunk serve
+
+build:
+    trunk build --release
+
+check:
+    cargo check --workspace
+
+# Só relevante se este projeto tiver backend SSR/API acoplado com sqlx.
+prep:
+    cargo sqlx prepare --workspace -- --all-targets
+
+install-hooks:
+    git config core.hooksPath .githooks
+    chmod +x .githooks/pre-commit

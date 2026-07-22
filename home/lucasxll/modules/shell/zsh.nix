@@ -1,8 +1,8 @@
-{
-  programs.bat = { enable = true; config = { paging = "auto"; style = "plain"; }; };
- ... }:
+{ ... }:
 
 {
+  programs.bat = { enable = true; config = { paging = "auto"; style = "plain"; }; };
+
   programs.zsh = {
     enable                    = true;
     autosuggestion.enable     = true;
@@ -49,7 +49,6 @@
       top   = "btop";
       find  = "fd";
       grep  = "rg";
-      cat   = "bat";
       du    = "dust";
       bench = "hyperfine";
       lc    = "tokei";
@@ -66,6 +65,8 @@
         cp -r "/etc/nixos/templates/$template" "$dest"
         sed -i "s/name *= *\"meu-projeto\"/name = \"$name\"/" "$dest/Cargo.toml"
         cd "$dest" && git init -q && git add . && echo "✅ $dest"
+        command -v direnv >/dev/null && [[ -f .envrc ]] && direnv allow . && echo "✅ direnv allow"
+        command -v just >/dev/null && [[ -f justfile ]] && just install-hooks && echo "✅ hooks instalados"
       }
       new-native() { _rust_new "rust-native-project" "$1"; }
       new-wasm()   { _rust_new "rust-wasm-project"   "$1"; }

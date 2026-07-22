@@ -21,6 +21,8 @@
     sccache bacon
     protobuf grpcurl
 
+    just  # runner de comandos padronizado entre projetos (justfile)
+
     pkgs-unstable.cargo-deny
     cargo-udeps
     cargo-tarpaulin

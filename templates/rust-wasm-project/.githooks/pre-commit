@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [ -f Cargo.toml ] && grep -q "sqlx" Cargo.toml 2>/dev/null; then
+  echo "→ cargo sqlx prepare (pre-commit)"
+  if ! cargo sqlx prepare --workspace -- --all-targets 2>/dev/null; then
+    echo "❌ cargo sqlx prepare falhou — DATABASE_URL setado? banco rodando?" >&2
+    exit 1
+  fi
+  git add .sqlx
+fi

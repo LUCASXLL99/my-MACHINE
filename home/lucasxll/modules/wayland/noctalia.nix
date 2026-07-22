@@ -110,9 +110,9 @@
       # Desativado: o night light real é o wlsunset (appearance/nightlight.nix).
       # Ter os dois rodando ao mesmo tempo fazia um brigar com o outro.
       nightLight = {
-        enabled      = false;
+        enabled      = true;
         autoSchedule = true;
-        nightTemp    = "3500";
+        nightTemp    = "1800";
         dayTemp      = "6500";
       };
     };
