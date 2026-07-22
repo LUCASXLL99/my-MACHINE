@@ -64,9 +64,23 @@
         mkdir -p "$HOME/projetos"
         cp -r "/etc/nixos/templates/$template" "$dest"
         sed -i "s/name *= *\"meu-projeto\"/name = \"$name\"/" "$dest/Cargo.toml"
-        cd "$dest" && git init -q && git add . && echo "✅ $dest"
-        command -v direnv >/dev/null && [[ -f .envrc ]] && direnv allow . && echo "✅ direnv allow"
-        command -v just >/dev/null && [[ -f justfile ]] && just install-hooks && echo "✅ hooks instalados"
+        cd "$dest"
+        git init -q
+        git add .
+        git commit -q -m "scaffold: $template"
+        echo "✅ $dest (commit inicial feito)"
+
+        if command -v direnv >/dev/null && [[ -f .envrc ]]; then
+          if direnv allow .; then echo "✅ direnv allow"; else echo "⚠️  direnv allow falhou"; fi
+        else
+          echo "⚠️  direnv/.envrc não encontrado, pulei"
+        fi
+
+        if command -v just >/dev/null && [[ -f justfile ]]; then
+          if just install-hooks; then echo "✅ hooks instalados"; else echo "⚠️  just install-hooks falhou"; fi
+        else
+          echo "⚠️  just/justfile não encontrado, pulei"
+        fi
       }
       new-native() { _rust_new "rust-native-project" "$1"; }
       new-wasm()   { _rust_new "rust-wasm-project"   "$1"; }
