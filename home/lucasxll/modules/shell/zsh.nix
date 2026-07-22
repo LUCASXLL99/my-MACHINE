@@ -1,4 +1,6 @@
-{ ... }:
+{
+  programs.bat = { enable = true; config = { paging = "auto"; style = "plain"; }; };
+ ... }:
 
 {
   programs.zsh = {
@@ -47,6 +49,7 @@
       top   = "btop";
       find  = "fd";
       grep  = "rg";
+      cat   = "bat";
       du    = "dust";
       bench = "hyperfine";
       lc    = "tokei";

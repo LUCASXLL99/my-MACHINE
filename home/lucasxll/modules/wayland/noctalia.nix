@@ -107,8 +107,10 @@
       audio      = { volumeStep = 5; volumeOverdrive = false; };
       brightness = { brightnessStep = 5; enforceMinimum = true; };
 
+      # Desativado: o night light real é o wlsunset (appearance/nightlight.nix).
+      # Ter os dois rodando ao mesmo tempo fazia um brigar com o outro.
       nightLight = {
-        enabled      = true;
+        enabled      = false;
         autoSchedule = true;
         nightTemp    = "3500";
         dayTemp      = "6500";

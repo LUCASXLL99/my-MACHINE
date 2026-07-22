@@ -8,6 +8,7 @@
     papirus-icon-theme
     inter
     libsForQt5.qtstyleplugin-kvantum
+    kdePackages.qtstyleplugin-kvantum
     libsForQt5.qt5ct
   ];
 

@@ -29,7 +29,7 @@ in
         echo "wlsunset: WAYLAND_DISPLAY não disponível em 10s" >&2
         exit 1
       '';
-      ExecStart  = "${pkgs.wlsunset}/bin/wlsunset -l ${lat} -L ${lon} -t 2500 -T 6500 -g 0.8";
+      ExecStart  = "${pkgs.wlsunset}/bin/wlsunset -l ${lat} -L ${lon} -t 1900 -T 6500 -g 0.8";
       Restart    = "on-failure";
       RestartSec = "5s";
     };
