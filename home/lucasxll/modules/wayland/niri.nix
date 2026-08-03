@@ -13,8 +13,14 @@
     input {
         keyboard {
             xkb {
-                layout "br"
-                variant "nodeadkeys"
+                // Fixo em "us": o teclado custom (QMK) já remapeia tudo no
+                // próprio firmware, então a camada BASE não depende do
+                // layout do SO — mas os símbolos da camada SYM (KC_SLSH,
+                // KC_SCLN, etc.) são posições físicas ANSI US. Com o SO em
+                // "br"/nodeadkeys, a tradução posição→caractere não batia
+                // com o que o firmware espera (ex: "/" saindo como ";").
+                // Antes: layout "br"; variant "nodeadkeys";
+                layout "us"
             }
             repeat-delay 400
             repeat-rate 30
