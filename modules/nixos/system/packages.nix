@@ -148,6 +148,8 @@
 
     wireshark fx
 
+    blender
+
     # ── Gravação / streaming (demo p/ cliente) ──────────────────────────
     # OBS: captura de tela via portal PipeWire (niri expõe a interface
     # org.gnome.Mutter.ScreenCast, então o portal-gnome já configurado

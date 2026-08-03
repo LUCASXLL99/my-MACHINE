@@ -18,7 +18,6 @@
     ../../modules/nixos/software/no-keyring.nix
     ../../modules/nixos/software/yazi-deps.nix
     ../../modules/nixos/software/niri.nix
-    ../../modules/nixos/software/ibus.nix
     ../../modules/nixos/software/rust-dev.nix
     ../../modules/nixos/software/wine.nix
     ../../modules/nixos/software/wallcards.nix
