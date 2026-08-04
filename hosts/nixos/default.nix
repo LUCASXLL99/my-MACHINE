@@ -23,6 +23,7 @@
     ../../modules/nixos/software/wallcards.nix
     ../../modules/nixos/software/kbuildsycoca-autofix.nix
     ../../modules/nixos/software/default-terminal.nix
+    ../../modules/nixos/software/obs-wayland.nix
 
     inputs.home-manager.nixosModules.home-manager
     inputs.stylix.nixosModules.stylix
