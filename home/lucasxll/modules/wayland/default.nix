@@ -6,5 +6,6 @@
     ./wallpaper.nix
     ./hot-corner.nix
     ./clipboard.nix
+    ./dolphin-extract.nix
   ];
 }

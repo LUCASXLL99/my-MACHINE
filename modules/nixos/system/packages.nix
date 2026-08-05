@@ -152,7 +152,7 @@
     # ── Facilita build/dev geral ─────────────────────────────────────
     gnumake cmake ninja gdb valgrind strace ltrace
     tree ncdu tmux zellij bat eza fzf entr
-    git-delta gh tig
+    delta gh tig
     unzip p7zip
 
     blender

@@ -134,6 +134,10 @@
 
         Mod+V { spawn "copyq" "show"; }
 
+        // Extrai zip/tar/rar/7z do item selecionado na janela ativa do
+        // Dolphin (ver home/lucasxll/modules/wayland/dolphin-extract.nix)
+        Ctrl+Alt+E { spawn "dolphin-extract-selected"; }
+
         Print       { screenshot; }
         Shift+Print { screenshot-screen; }
         Ctrl+Print  { spawn "sh" "-c" "sel=$(slurp 2>/dev/null) || exit 0; grim -g \"$sel\" - | wl-copy"; }
