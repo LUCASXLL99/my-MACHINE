@@ -59,21 +59,30 @@ let
       exit 0
     fi
 
-    active_obj=$(qdbus "$active_service" | grep -m1 '^/dolphin/Dolphin_[0-9]*$' || true)
+    all_objs=$(qdbus "$active_service" 2>>"$log")
+    echo "objects for $active_service: $(printf '%s' "$all_objs" | tr '\n' ' ')" >> "$log"
+
+    active_obj=$(printf '%s' "$all_objs" | grep -m1 '^/dolphin/Dolphin_[0-9]*$' || true)
 
     if [ -z "$active_obj" ]; then
       notify "Não achei o objeto MainWindow do Dolphin"
+      echo "ERRO: active_obj vazio (padrão /dolphin/Dolphin_N não encontrado na lista acima)" >> "$log"
       exit 0
     fi
+    echo "active_obj=$active_obj" >> "$log"
 
     # Guarda o conteúdo atual da área de transferência pra restaurar depois
     old_clip=$(wl-paste -t text/uri-list 2>/dev/null || true)
+    echo "old_clip=$old_clip" >> "$log"
 
     # Dispara "copiar" (Ctrl+C) na janela ativa via D-Bus
-    qdbus "$active_service" "$active_obj" org.kde.KMainWindow.activateAction edit_copy >/dev/null 2>&1 || true
+    copy_out=$(qdbus "$active_service" "$active_obj" org.kde.KMainWindow.activateAction edit_copy 2>&1)
+    copy_rc=$?
+    echo "activateAction edit_copy rc=$copy_rc out=$copy_out" >> "$log"
     sleep 0.15
 
     items=$(wl-paste -t text/uri-list 2>/dev/null || true)
+    echo "items after copy: [$items]" >> "$log"
 
     got_any=0
 
@@ -136,6 +145,7 @@ let
     if [ "$got_any" -eq 0 ]; then
       notify "Nada selecionado no Dolphin"
     fi
+    echo "got_any=$got_any (fim do run)" >> "$log"
   '';
 in
 {
