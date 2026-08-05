@@ -88,6 +88,7 @@ let
 
     if [ -n "$items" ]; then
         while IFS= read -r url; do
+          url="''${url%$'\r'}"
           [ -z "$url" ] && continue
           got_any=1
           # file:///caminho/arquivo.zip -> /caminho/arquivo.zip
