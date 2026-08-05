@@ -15,7 +15,7 @@ let
     notify() { notify-send -a "Dolphin Extract" "$1" "''${2:-}"; }
 
     # Dolphin (KF6) registra um serviço D-Bus por janela: org.kde.dolphin-<pid>
-    services=$(qdbus | grep '^org\.kde\.dolphin-' || true)
+    services=$(qdbus6 | grep '^org\.kde\.dolphin-' || true)
     if [ -z "$services" ]; then
       notify "Nenhuma janela do Dolphin encontrada"
       exit 0
@@ -26,9 +26,9 @@ let
     for service in $services; do
       # Cada janela pode ter várias views (Dolphin_1, Dolphin_2, ...) —
       # tentamos todas e ficamos com quem responder itens selecionados.
-      objects=$(qdbus "$service" | grep '^/dolphin/Dolphin_' || true)
+      objects=$(qdbus6 "$service" | grep '^/dolphin/Dolphin_' || true)
       for obj in $objects; do
-        items=$(qdbus "$service" "$obj" org.kde.dolphin.MainWindow.selectedItems 2>/dev/null || true)
+        items=$(qdbus6 "$service" "$obj" org.kde.dolphin.MainWindow.selectedItems 2>/dev/null || true)
         [ -z "$items" ] && continue
 
         while IFS= read -r url; do
