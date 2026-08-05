@@ -21,7 +21,7 @@
         "usb" "disk" "cdrom"
         "video" "audio" # v4l2loopback (câmera virtual OBS) + captura de áudio
       ];
-      hashedPassword = "$6$6PEfHzY1BpSqVGXG$j1j7Chn4nt3ehnojWM2mZMaof2LhA2MTN48MNGFzlqZPHjxbgMatRWNU34D6yC5aoeGk1pVc9aTQzc07Px.s8.";
+      hashedPassword = "$6$MBJkNgz.CaFcC137$ef7eNpBjGDv.ZZEN/fIVMP1TB1D4XMYQlTn3j65Gs3PeChs4e.2T.s07M0wRAx/EzwWlhQQsNj9K37rCD4Yk90";
       packages = [];
     };
   };

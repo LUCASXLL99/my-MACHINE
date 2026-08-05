@@ -138,7 +138,8 @@
 
     rust-analyzer rustfmt
 
-    lazygit httpie websocat jq yq-go curlie
+    lazygit httpie websocat jq yq-go curlie curl
+    git-lfs
 
     flyctl caddy sqlx-cli mkcert
 
@@ -147,6 +148,12 @@
     lazydocker dive
 
     wireshark fx
+
+    # ── Facilita build/dev geral ─────────────────────────────────────
+    gnumake cmake ninja gdb valgrind strace ltrace
+    tree ncdu tmux zellij bat eza fzf entr
+    git-delta gh tig
+    unzip p7zip
 
     blender
 
