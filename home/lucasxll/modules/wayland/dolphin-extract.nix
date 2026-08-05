@@ -11,41 +11,52 @@
 # disparamos a ação "edit_copy" (Ctrl+C) via D-Bus na janela ativa do
 # Dolphin, o que põe os itens selecionados na área de transferência
 # como text/uri-list, e lemos isso com wl-paste (Wayland).
+#
+# NOTA 2: org.kde.dolphin.MainWindow.isActiveWindow() SEMPRE retorna
+# false no niri (testado) — niri não é KWin e não repassa o estado de
+# ativação do Qt corretamente via Wayland. Por isso descobrimos a
+# janela focada perguntando pro PRÓPRIO niri via IPC (`niri msg --json
+# focused-window`), que reporta o app_id e pid corretos, e casamos o
+# pid com o nome do serviço D-Bus org.kde.dolphin-<pid>.
 # ─────────────────────────────────────────────────────────────
 { pkgs, ... }:
 
 let
   dolphin-extract-selected = pkgs.writeShellScriptBin "dolphin-extract-selected" ''
     set -uo pipefail
-    export PATH="${pkgs.kdePackages.qttools}/bin:${pkgs.unzip}/bin:${pkgs.gnutar}/bin:${pkgs.p7zip}/bin:${pkgs.unrar}/bin:${pkgs.libnotify}/bin:${pkgs.wl-clipboard}/bin:${pkgs.coreutils}/bin:${pkgs.gnused}/bin:$PATH"
+    export PATH="${pkgs.kdePackages.qttools}/bin:${pkgs.unzip}/bin:${pkgs.gnutar}/bin:${pkgs.p7zip}/bin:${pkgs.unrar}/bin:${pkgs.libnotify}/bin:${pkgs.wl-clipboard}/bin:${pkgs.coreutils}/bin:${pkgs.gnused}/bin:${pkgs.niri}/bin:${pkgs.jq}/bin:$PATH"
 
     notify() { notify-send -a "Dolphin Extract" "$1" "''${2:-}"; }
 
-    # Dolphin (KF6) registra um serviço D-Bus por janela: org.kde.dolphin-<pid>
-    services=$(qdbus | grep '^org\.kde\.dolphin-' || true)
-    if [ -z "$services" ]; then
-      notify "Nenhuma janela do Dolphin encontrada"
+    # Pergunta pro niri qual é a janela focada (isActiveWindow do Qt não
+    # funciona no niri, ver NOTA 2 acima).
+    focused=$(niri msg --json focused-window 2>/dev/null || true)
+    if [ -z "$focused" ] || [ "$focused" = "null" ]; then
+      notify "Nenhuma janela focada"
       exit 0
     fi
 
-    # Acha o objeto MainWindow da janela ATIVA (evita pegar seleção
-    # da janela errada quando há mais de um Dolphin aberto).
-    active_service=""
-    active_obj=""
-    for service in $services; do
-      objects=$(qdbus "$service" | grep '^/dolphin/Dolphin_' || true)
-      for obj in $objects; do
-        is_active=$(qdbus "$service" "$obj" org.kde.dolphin.MainWindow.isActiveWindow 2>/dev/null || echo "false")
-        if [ "$is_active" = "true" ]; then
-          active_service="$service"
-          active_obj="$obj"
-          break 2
-        fi
-      done
-    done
+    app_id=$(printf '%s' "$focused" | jq -r '.app_id // empty')
+    pid=$(printf '%s' "$focused" | jq -r '.pid // empty')
 
-    if [ -z "$active_service" ]; then
-      notify "Nenhuma janela do Dolphin está ativa/focada"
+    if [ "$app_id" != "org.kde.dolphin" ] || [ -z "$pid" ]; then
+      notify "A janela focada não é o Dolphin"
+      exit 0
+    fi
+
+    active_service="org.kde.dolphin-$pid"
+
+    # Confirma que o serviço D-Bus correspondente existe e acha seu
+    # objeto MainWindow (/dolphin/Dolphin_N).
+    if ! qdbus | grep -qx "$active_service"; then
+      notify "Dolphin focado (pid $pid), mas serviço D-Bus não encontrado"
+      exit 0
+    fi
+
+    active_obj=$(qdbus "$active_service" | grep -m1 '^/dolphin/Dolphin_[0-9]*$' || true)
+
+    if [ -z "$active_obj" ]; then
+      notify "Não achei o objeto MainWindow do Dolphin"
       exit 0
     fi
 
