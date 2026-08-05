@@ -54,7 +54,7 @@ let
 
     # Confirma que o serviço D-Bus correspondente existe e acha seu
     # objeto MainWindow (/dolphin/Dolphin_N).
-    if ! printf '%s\n' "$all_services" | grep -qx "$active_service"; then
+    if ! printf '%s\n' "$all_services" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | grep -qx "$active_service"; then
       notify "Dolphin focado (pid $pid), mas serviço D-Bus não encontrado"
       exit 0
     fi
