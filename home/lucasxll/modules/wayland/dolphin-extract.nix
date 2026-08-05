@@ -28,6 +28,9 @@ let
 
     notify() { notify-send -a "Dolphin Extract" "$1" "''${2:-}"; }
 
+    log="/tmp/dolphin-extract-debug.log"
+    { echo "── run $(date '+%H:%M:%S') ──"; echo "DBUS_SESSION_BUS_ADDRESS=''${DBUS_SESSION_BUS_ADDRESS:-<unset>}"; } >> "$log"
+
     # Pergunta pro niri qual é a janela focada (isActiveWindow do Qt não
     # funciona no niri, ver NOTA 2 acima).
     focused=$(niri msg --json focused-window 2>/dev/null || true)
@@ -38,6 +41,7 @@ let
 
     app_id=$(printf '%s' "$focused" | jq -r '.app_id // empty')
     pid=$(printf '%s' "$focused" | jq -r '.pid // empty')
+    echo "focused-window: $focused" >> "$log"
 
     if [ "$app_id" != "org.kde.dolphin" ] || [ -z "$pid" ]; then
       notify "A janela focada não é o Dolphin"
@@ -45,10 +49,12 @@ let
     fi
 
     active_service="org.kde.dolphin-$pid"
+    all_services=$(qdbus 2>>"$log")
+    echo "qdbus services: $(printf '%s' "$all_services" | tr '\n' ' ')" >> "$log"
 
     # Confirma que o serviço D-Bus correspondente existe e acha seu
     # objeto MainWindow (/dolphin/Dolphin_N).
-    if ! qdbus | grep -qx "$active_service"; then
+    if ! printf '%s\n' "$all_services" | grep -qx "$active_service"; then
       notify "Dolphin focado (pid $pid), mas serviço D-Bus não encontrado"
       exit 0
     fi
