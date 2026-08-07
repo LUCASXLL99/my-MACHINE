@@ -6,5 +6,6 @@
     ./lf.nix
     ./coding-agents.nix
     ./espanso.nix
+    ./espanso-acentos.nix
   ];
 }
