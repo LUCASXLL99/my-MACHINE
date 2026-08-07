@@ -5,5 +5,6 @@
     ./yazi.nix
     ./lf.nix
     ./coding-agents.nix
+    ./espanso.nix
   ];
 }

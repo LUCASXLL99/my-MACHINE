@@ -134,4 +134,61 @@
     };
     Install.WantedBy = [ "graphical-session.target" ];
   };
+
+  # ── LOCK ANTES DE SUSPENDER (inibidor de verdade) ───────────────────────────
+  # O "lockOnSuspend = true" do noctalia acima dispara o lock de forma
+  # assíncrona, sem segurar o suspend. Como o kernel congela os processos
+  # userspace logo em seguida, às vezes a tela de lock não tem tempo de montar
+  # antes do freeze — resultado: acorda sem ter travado nada.
+  #
+  # Esse serviço usa um inibidor real do systemd-logind (systemd-inhibit
+  # --what=sleep): ele SEGURA o suspend, manda travar a tela via IPC do
+  # noctalia, espera a tela realmente confirmar que está montada, e só então
+  # libera o inibidor pra suspend continuar. Suspend só acontece depois que a
+  # tela já está travada e assentada — nunca mais na corrida.
+  systemd.user.services.lock-before-suspend = {
+    Unit = {
+      Description = "Trava a tela e segura o suspend até o lock estar pronto";
+      After        = [ "noctalia-shell.service" ];
+      PartOf       = [ "graphical-session.target" ];
+    };
+    Service = {
+      Type = "simple";
+      ExecStart = pkgs.writeShellScript "lock-before-suspend" ''
+        set -u
+        NOCTALIA="${inputs.noctalia.packages.${pkgs.system}.default}/bin/noctalia-shell"
+
+        ${pkgs.systemd}/bin/systemd-inhibit \
+          --what=sleep \
+          --who="lock-before-suspend" \
+          --why="Travar tela antes de suspender" \
+          --mode=delay \
+          ${pkgs.bash}/bin/bash -c '
+            # Escuta o sinal PrepareForSleep(true) do logind via busctl.
+            ${pkgs.systemd}/bin/busctl monitor --system \
+              --match="type=signal,interface=org.freedesktop.login1.Manager,member=PrepareForSleep" \
+              | while IFS= read -r line; do
+                  case "$line" in
+                    *BOOLEAN\ true*)
+                      # Manda travar e espera a tela confirmar (evita corrida).
+                      '"$NOCTALIA"' ipc call lockScreen lock
+                      for i in $(seq 1 20); do
+                        locked=$('"$NOCTALIA"' ipc call lockScreen isLocked 2>/dev/null || echo false)
+                        [ "$locked" = "true" ] && break
+                        sleep 0.1
+                      done
+                      # Descarta qualquer evento de teclado acumulado até aqui
+                      # antes de deixar o suspend prosseguir de fato.
+                      sleep 0.3
+                      exit 0
+                      ;;
+                  esac
+                done
+          '
+      '';
+      Restart    = "always";
+      RestartSec = "1s";
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
+  };
 }
