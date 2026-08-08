@@ -57,6 +57,7 @@
     backupFileExtension = "backup";
     sharedModules = [
       inputs.stylix.homeModules.stylix
+      inputs.mango.hmModules.mango
     ];
     users.lucasxll = import ../../home/lucasxll/default.nix;
   };
