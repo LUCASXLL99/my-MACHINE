@@ -6,18 +6,12 @@
 # XWayland — aí não consegue consultar o xdg-desktop-portal-gnome para
 # screen cast, e a fonte some do menu de fontes.
 #
-# ATENÇÃO (troca niri → mango): este arquivo NÃO foi reescrito, só marcado.
-# O truque abaixo (esperar xdg-desktop-portal-gnome) só funciona porque o
-# niri expõe org.gnome.Mutter.ScreenCast no DBus, imitando o Mutter. O
-# mango é baseado em wlroots/dwl e não tem essa emulação — a captura de
-# tela por portal normalmente passa por xdg-desktop-portal-wlr em vez do
-# portal-gnome. Como não tenho como testar aqui, não troquei sozinho pra
-# não quebrar a gravação: seria preciso trocar o portal (adicionar
-# xdg-desktop-portal-wlr, ajustar xdg.portal.config) e validar na prática.
-#
-# Além disso, o serviço xdg-desktop-portal-gnome às vezes sobe antes de o
-# niri registrar org.gnome.Mutter.ScreenCast no DBus. O After= abaixo
-# força o portal a esperar a sessão gráfica estar pronta antes de iniciar.
+# ATUALIZAÇÃO: adicionei xdg-desktop-portal-wlr em mango.nix (xdg.portal.wlr),
+# que é o backend correto de captura de tela pro mango. O trecho abaixo,
+# que reinicia o xdg-desktop-portal-gnome, ficou órfão — não faz mais
+# diferença com mango, mas deixei como está (não apaga nada, só não é mais
+# necessário). Se quiser, pode remover esse bloco `systemd.user.services.
+# xdg-desktop-portal-gnome` mais tarde.
 { ... }:
 
 {
