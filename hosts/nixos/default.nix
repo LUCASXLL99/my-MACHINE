@@ -67,6 +67,14 @@
   hardware.keyboard.qmk.enable = true;
   services.pulseaudio.enable   = false;
 
+  # dconf: antes vinha "de brinde" com o xdg-desktop-portal-gnome (que
+  # tirei quando troquei o portal pra wlr, ver mango.nix). Sem isso, o
+  # dbus-service ca.desrt.dconf some do sistema e o home-manager quebra
+  # na etapa dconfSettings ("ServiceUnknown: ca.desrt.dconf") — mesmo com
+  # 0 settings de dconf configurados, o home-manager sempre roda essa
+  # etapa de ativação.
+  programs.dconf.enable = true;
+
   # GPU (AMD/mesa) — sem isso, captura de tela via PipeWire (OBS) fica preta,
   # pois depende de DMA-BUF/VAAPI que só existe com aceleração habilitada.
   hardware.graphics = {
