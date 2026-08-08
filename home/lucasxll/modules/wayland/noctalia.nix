@@ -65,13 +65,16 @@
         schedulingMode     = "off";
       };
 
+      # Rotação automática dos wallpapers 4K (portados do mango-fedora).
+      # mpvpaper (wallpaper.nix) foi desativado pra não brigar — o vídeo
+      # wallpaper.mp4 ainda dá pra ligar manualmente via SUPER+Semicolon.
       wallpaper = {
-        enabled                   = false;
+        enabled                   = true;
         directory                 = "/home/lucasxll/Pictures/wallpapers";
-        automationEnabled         = false;
+        automationEnabled         = true;
         wallpaperChangeMode       = "random";
-        randomIntervalSec         = 300;
-        transitionDuration        = 1500;
+        randomIntervalSec         = 600;
+        transitionDuration        = 2000;
         transitionType            = [ "fade" ];
         fillMode                  = "crop";
         setWallpaperOnAllMonitors = true;

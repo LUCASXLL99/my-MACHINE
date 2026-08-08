@@ -1,3 +1,13 @@
+# Live wallpaper via mpvpaper (wallpaper.mp4).
+#
+# DESATIVADO: o wallpaper do Noctalia (noctalia.nix) agora faz rotação
+# automática dos wallpapers 4K em ~/Pictures/wallpapers — ter os dois
+# rodando fazia um desenhar por cima do outro. O vídeo continua disponível
+# manualmente via bind SUPER+Semicolon (pkill mpvpaper || mpvpaper ...).
+#
+# Se quiser voltar o vídeo como padrão: reative este serviço e desligue o
+# bloco wallpaper do noctalia.nix.
+
 { config, pkgs, ... }:
 
 let
@@ -29,9 +39,11 @@ in
 
   systemd.user.services.mpvpaper = {
     Unit = {
-      Description = "mpvpaper — live wallpaper Wayland";
+      Description = "mpvpaper — live wallpaper Wayland (desativado: noctalia cuida)";
       After  = [ "graphical-session.target" ];
       PartOf = [ "graphical-session.target" ];
+      # Não sobe com a sessão — o Noctalia faz rotação dos estáticos.
+      ConditionPathExists = "/nonexistent";
     };
     Service = {
       ExecStart             = "${launchScript}";

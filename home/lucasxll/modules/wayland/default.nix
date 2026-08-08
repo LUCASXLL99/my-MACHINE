@@ -2,6 +2,7 @@
 {
   imports = [
     ./mango.nix
+    ./mango-tools.nix
     ./noctalia.nix
     ./wallpaper.nix
     ./hot-corner.nix

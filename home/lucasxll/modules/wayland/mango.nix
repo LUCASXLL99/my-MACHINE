@@ -163,6 +163,9 @@
 
         "SUPER,F5,spawn,mango-mirror"
         "SUPER,F6,spawn,mango-reset"
+        "SUPER,F7,spawn,mango-reload"
+        "SUPER,F8,spawn,mango-screenshot"
+        "SUPER,F9,spawn,mango-toggle-gaps"
 
         "SUPER,W,killclient"
         "SUPER+SHIFT,Q,killclient"

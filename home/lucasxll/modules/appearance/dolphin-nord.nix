@@ -2,12 +2,15 @@
 # GTK e Qt (kvantum via qtct) agora são gerados pelo Stylix a partir do
 # esquema Tokyo Night (ver stylix.nix) — aqui ficam só os ajustes
 # específicos do Dolphin e do kdeglobals.
+# tela-icon-theme: tema de ícones do repo mango-fedora (theblackdon),
+# disponível como alternativa ao Papirus — o ativo continua Papirus-Dark.
 
 { pkgs, ... }:
 
 {
   home.packages = with pkgs; [
     papirus-icon-theme
+    tela-icon-theme
     inter
     libsForQt5.qtstyleplugin-kvantum
     kdePackages.qtstyleplugin-kvantum
