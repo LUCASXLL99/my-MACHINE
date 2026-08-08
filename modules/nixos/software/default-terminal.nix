@@ -2,7 +2,7 @@
 
 # Define o WezTerm como terminal padrão do sistema, de forma declarativa.
 #
-# Sem sessão Plasma completa (niri é standalone), o "Abrir Terminal Aqui"
+# Sem sessão Plasma completa (mango é standalone), o "Abrir Terminal Aqui"
 # do Dolphin cai no xdg-terminal-exec, que escolhe o terminal olhando:
 #   1. ~/.config/xdg-terminals.list  (por usuário)
 #   2. /etc/xdg/xdg-terminals.list   (sistema — é o que setamos aqui)

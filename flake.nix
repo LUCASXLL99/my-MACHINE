@@ -17,16 +17,17 @@
       url    = "github:noctalia-dev/noctalia-shell";
       inputs.nixpkgs.follows = "nixpkgs-unstable";
     };
-    # Sem nixpkgs.follows: niri usa o nixpkgs próprio para bater com os
-    # binários pré-compilados em niri.cachix.org (com follows compila ~30min).
-    niri.url = "github:sodiboo/niri-flake";
+    mango = {
+      url = "github:mangowm/mango";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     opencode-nix = {
       url    = "github:dan-online/opencode-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
-  outputs = { self, nixpkgs, home-manager, stylix, noctalia, niri, opencode-nix, ... } @ inputs:
+  outputs = { self, nixpkgs, home-manager, stylix, noctalia, mango, opencode-nix, ... } @ inputs:
   let
     system        = "x86_64-linux";
     pkgs-unstable = inputs.nixpkgs-unstable.legacyPackages.${system};
@@ -55,7 +56,7 @@
       specialArgs = { inherit inputs pkgs-unstable; };
       modules = [
         { nixpkgs.pkgs = pkgs; }
-        niri.nixosModules.niri
+        mango.nixosModules.mango
         ./hosts/nixos/default.nix
       ];
     };

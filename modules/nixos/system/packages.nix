@@ -39,7 +39,7 @@
 
   # kbuildsycoca6 exige um applications.menu (freedesktop Menu Spec) em
   # /etc/xdg/menus — normalmente vem do desktop environment completo
-  # (Plasma/GNOME), que não temos rodando (niri é standalone). Sem ele,
+  # (Plasma/GNOME), que não temos rodando (mango é standalone). Sem ele,
   # o Dolphin não lista nenhum app no diálogo "Abrir com". Reaproveita o
   # gnome-applications.menu do gnome-menus (pacote leve) só renomeado.
   environment.etc."xdg/menus/applications.menu".source =
@@ -66,7 +66,7 @@
     vivaldi obsidian onlyoffice-bin_latest gnome-disk-utility
     rofi
     kdePackages.dolphin kdePackages.ark
-    # kbuildsycoca6: sem sessão Plasma completa (niri), ninguém mantém o
+    # kbuildsycoca6: sem sessão Plasma completa (mango), ninguém mantém o
     # cache de serviços/MIME do KDE atualizado — sem isso, "Abrir com" no
     # Dolphin não lista nenhum app instalado.
     kdePackages.kservice

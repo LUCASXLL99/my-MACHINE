@@ -1,5 +1,6 @@
 # Inverte controles do mouse via evdev + xinput CTM (X11).
-# Wayland: niri usa transform "flipped" no output (não expõe CTM).
+# Wayland: mango (baseado em dwl/wlroots) usa transform "flipped" no
+# output (não expõe CTM) — mesmo comportamento que tínhamos com o niri.
 # \[ e \] obrigatórios nas regras udev ([ ] são glob de char class).
 
 { pkgs, ... }:
@@ -125,7 +126,7 @@
   in [ mouseInvert ];
 
   systemd.services.mouse-invert = {
-    description = "Mouse axis inverter (SDDM + Niri)";
+    description = "Mouse axis inverter (SDDM + Mango)";
     after    = [ "systemd-udev-settle.service" ];
     before   = [ "display-manager.service" ];
     wantedBy = [ "display-manager.service" ];

@@ -1,6 +1,6 @@
 { pkgs, ... }:
 
-# Sem sessão Plasma completa (niri é standalone), nenhum serviço aplica
+# Sem sessão Plasma completa (mango é standalone), nenhum serviço aplica
 # tema Qt automaticamente — apps KDE (Dolphin, Ark) caem no estilo Qt
 # padrão (Fusion claro), ignorando o resto do desktop escuro.
 #

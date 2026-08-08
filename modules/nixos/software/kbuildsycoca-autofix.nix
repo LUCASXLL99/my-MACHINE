@@ -1,6 +1,6 @@
 { pkgs, ... }:
 
-# Sem sessão Plasma completa (niri é standalone), nada dispara o
+# Sem sessão Plasma completa (mango é standalone), nada dispara o
 # kbuildsycoca6 automaticamente quando pacotes/.desktop mudam. O cache
 # de serviços/MIME do KDE (ksycoca) fica obsoleto e o Dolphin passa a
 # listar/tentar executar entradas erradas no diálogo "Abrir com"

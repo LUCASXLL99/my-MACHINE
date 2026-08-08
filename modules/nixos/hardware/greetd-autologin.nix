@@ -6,7 +6,10 @@
     restart = false;
     settings = rec {
       initial_session = {
-        command = "${config.programs.niri.package}/bin/niri-session";
+        # TODO(mango): confirme o nome do binário/pacote exposto pelo módulo
+        # `programs.mango` (ex.: `pkgs.mango`) — não veio no zip enviado pra
+        # eu conferir o caminho exato como fiz antes com `config.programs.niri.package`.
+        command = "${pkgs.mango}/bin/mango";
         user    = "lucasxll";
       };
       default_session = initial_session;
