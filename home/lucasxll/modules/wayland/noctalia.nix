@@ -107,8 +107,8 @@
       audio      = { volumeStep = 5; volumeOverdrive = false; };
       brightness = { brightnessStep = 5; enforceMinimum = true; };
 
-      # Desativado: o night light real é o wlsunset (appearance/nightlight.nix).
-      # Ter os dois rodando ao mesmo tempo fazia um brigar com o outro.
+      # Fonte única de night light: o do noctalia. O wlsunset
+      # (appearance/nightlight.nix) não é importado — evita duplicação.
       nightLight = {
         enabled      = true;
         autoSchedule = true;

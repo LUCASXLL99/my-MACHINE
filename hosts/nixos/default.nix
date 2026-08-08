@@ -31,6 +31,9 @@
   ];
 
   # stylix
+  # enable=true necessário: sem ele o Stylix fica inerte (default é false) e
+  # todos os targets abaixo não aplicam nada.
+  stylix.enable = true;
   stylix.base16Scheme = {
     scheme = "Tokyo Night Dark";
     author = "lucasxll (adaptado de enkia/tokyo-night-vscode-theme)";
@@ -41,7 +44,7 @@
     base0C = "73daca"; base0D = "7aa2f7"; base0E = "bb9af7";
     base0F = "db4b4b";
   };
-  stylix.image = config.lib.stylix.pixel "1a1b26";
+  stylix.image = config.lib.stylix.pixel "base00"; # #1a1b26 (fundo do esquema)
   stylix.fonts = {
     monospace = { package = pkgs.nerd-fonts.jetbrains-mono; name = "JetBrainsMono Nerd Font"; };
     sansSerif = { package = pkgs.inter; name = "Inter"; };
@@ -55,8 +58,11 @@
     useUserPackages     = true;
     extraSpecialArgs    = { inherit inputs; };
     backupFileExtension = "backup";
+    # sharedModules do stylix NÃO entram aqui: o módulo NixOS do stylix já faz
+    # autoImport (stylix.homeManagerIntegration.autoImport=true) — importar o
+    # homeModules.stylix manualmente aqui duplicava a definição de
+    # stylix.base16 e quebrava a avaliação.
     sharedModules = [
-      inputs.stylix.homeModules.stylix
       inputs.mango.hmModules.mango
     ];
     users.lucasxll = import ../../home/lucasxll/default.nix;

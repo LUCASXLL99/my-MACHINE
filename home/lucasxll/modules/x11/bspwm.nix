@@ -92,7 +92,7 @@
     super + Return
       wezterm
     super + shift + Return
-      kitty
+      wezterm
 
     super + d
       rofi -show drun

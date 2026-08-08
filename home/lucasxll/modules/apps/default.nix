@@ -4,6 +4,7 @@
     ./neovim.nix
     ./yazi.nix
     ./lf.nix
+    ./rofi.nix
     ./coding-agents.nix
   ];
 }

@@ -1,6 +1,8 @@
 # Layout e comportamento. Cores gerenciadas pelo Stylix.
+# A fonte é forçada aqui (mkForce) porque o target do Stylix setaria a
+# sansSerif (Inter); mantemos a monospace do usuário no dunst.
 
-{ ... }:
+{ config, lib, ... }:
 
 {
   services.dunst = {
@@ -12,7 +14,7 @@
         width = 320; height = 200;
         padding = 12; horizontal_padding = 14;
         frame_width = 2; corner_radius = 8;
-        font = "JetBrainsMono Nerd Font 10";
+        font = lib.mkForce "JetBrainsMono Nerd Font 10";
         line_height = 2; markup = "full";
         format = "<b>%s</b>\\n%b";
         alignment = "left"; word_wrap = true;

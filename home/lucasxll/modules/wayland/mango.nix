@@ -125,10 +125,11 @@
       bind = [
         "SUPER,Return,spawn,wezterm"
         "SUPER,T,spawn,wezterm"
-        "SUPER+SHIFT,Return,spawn,kitty"
+        "SUPER+SHIFT,Return,spawn,wezterm"
 
         "SUPER,D,spawn,noctalia-shell ipc call launcher toggle"
         "SUPER,R,spawn,rofi -show drun"
+        "SUPER,Space,spawn,rofi -show drun"
 
         "SUPER,E,spawn,dolphin"
         "SUPER,B,spawn,blueman-manager"
@@ -150,6 +151,7 @@
         "NONE,XF86AudioRaiseVolume,spawn,noctalia-shell ipc call volume increase"
         "NONE,XF86AudioLowerVolume,spawn,noctalia-shell ipc call volume decrease"
         "NONE,XF86AudioMute,spawn,noctalia-shell ipc call volume muteOutput"
+        "SHIFT,XF86AudioMute,spawn,wpctl set-mute @DEFAULT_SOURCE@ toggle"
 
         "NONE,XF86AudioPlay,spawn,playerctl play-pause"
         "NONE,XF86AudioPause,spawn,playerctl play-pause"
@@ -200,6 +202,10 @@
         "SUPER+ALT,L,setmfact,+0.05"
 
         "SUPER,C,centerwin"
+        "SUPER,Tab,focuslast"
+        "SUPER,G,toggleglobal"
+        "SUPER+ALT,S,toggle_scratchpad"
+        "SUPER,O,toggleoverview"
 
         "SUPER,U,viewtoright"
         "SUPER,I,viewtoleft"
@@ -225,6 +231,11 @@
         # preferi não inventar):
         #   Mod+Shift+Page_Down/Up — reordenar a posição da tag/workspace
         #   em si (não é trocar de tag, é mudar a ORDEM das tags)
+
+        # ── MODO RESIZE (modal) ────────────────────────────────────
+        # SUPER+Alt+R entra no modo; setas redimensionam a janela;
+        # Esc/Return volta ao modo default. Ver keymode abaixo.
+        "SUPER+ALT,R,setkeymode,resize"
       ];
 
       axisbind = [
@@ -236,6 +247,30 @@
         "SUPER+CTRL,UP,viewtoleft"
         "SUPER+CTRL,RIGHT,exchange_client,right"
         "SUPER+CTRL,LEFT,exchange_client,left"
+      ];
+
+      # ── MODO RESIZE (submapa) ────────────────────────────────────
+      # Dispara com SUPER+Alt+R. Só as setas agem nesse modo; o resto
+      # dos atalhos fica suspenso até Esc/Return voltar pro default.
+      keymode = {
+        resize = {
+          bind = [
+            "NONE,Left,resizewin,-20,0"
+            "NONE,Right,resizewin,+20,0"
+            "NONE,Up,resizewin,0,-20"
+            "NONE,Down,resizewin,0,+20"
+            "NONE,Escape,setkeymode,default"
+            "NONE,Return,setkeymode,default"
+          ];
+        };
+      };
+
+      # ── MOUSE ────────────────────────────────────────────────────
+      # SUPER + botão esquerdo arrasta a janela flutuante; SUPER + botão
+      # direito redimensiona. (Espera-se btn_left/btn_right como nomes.)
+      mousebind = [
+        "SUPER,btn_left,moveresize,curmove"
+        "SUPER,btn_right,moveresize,curresize"
       ];
 
       windowrule = [
