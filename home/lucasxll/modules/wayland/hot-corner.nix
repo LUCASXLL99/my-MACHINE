@@ -1,13 +1,19 @@
-# Canto superior direito -> niri toggle-overview
-# niri 25.08 nao tem cursor-position -- usa delta REL_X/REL_Y.
-# Resync via niri event-stream: ConfigLoaded (suspend/resume) e idle timeout.
+# Canto superior direito -> mango toggleoverview
+# PORTADO niri -> mango. mango 25.08 nao tem cursor-position -- usa delta REL_X/REL_Y.
+# Resync: watch de "all-monitors" via mmsg (proxy p/ suspend/resume) e idle timeout.
+#
+# NOTA: adaptei niri_env/niri_cmd para o IPC do mango (mmsg + var de ambiente
+# MANGO_INSTANCE_SIGNATURE), seguindo a doc oficial (mangowm.github.io/docs/ipc).
+# O glob do socket ("mango.*.sock") é um chute educado baseado no padrão do
+# niri -- se não bater, ajusta em /run/user/$UID/ depois de logar no mango
+# (`ls /run/user/$(id -u)/`) e corrige o glob abaixo.
 
 { pkgs, ... }:
 
 let
   python = pkgs.python3.withPackages (ps: [ ps.evdev ]);
 
-  script = pkgs.writeShellScriptBin "niri-hot-corner-right" ''
+  script = pkgs.writeShellScriptBin "mango-hot-corner-right" ''
     exec ${python}/bin/python3 << 'PYEOF'
 import asyncio, subprocess, os, glob, json, time, struct, ctypes
 from evdev import InputDevice, ecodes
@@ -27,42 +33,43 @@ lock         = None   # asyncio.Lock, criado em main()
 def log(msg):
     print(f"[hot-corner] {msg}", flush=True)
 
-# niri ipc
-def niri_env():
+# mango ipc (mmsg)
+def mango_env():
     env  = {**os.environ}
-    hits = glob.glob(f"/run/user/{os.getuid()}/niri.*.sock")
-    sock = os.environ.get("NIRI_SOCKET", hits[0] if hits else "")
+    hits = glob.glob(f"/run/user/{os.getuid()}/mango.*.sock") or glob.glob(f"/run/user/{os.getuid()}/mango*")
+    sock = os.environ.get("MANGO_INSTANCE_SIGNATURE", hits[0] if hits else "")
     if sock and os.path.exists(sock):
-        env["NIRI_SOCKET"] = sock
+        env["MANGO_INSTANCE_SIGNATURE"] = sock
     return env
 
-def niri_cmd(*args, timeout=3):
-    return subprocess.run(["niri", "msg", *args],
+def mango_cmd(*args, timeout=3):
+    return subprocess.run(["mmsg", *args],
                           capture_output=True, text=True,
-                          timeout=timeout, env=niri_env())
+                          timeout=timeout, env=mango_env())
 
 def get_screen_dims():
     for attempt in range(20):
         try:
-            r = niri_cmd("-j", "outputs")
+            r = mango_cmd("get", "all-monitors")
             if r.returncode == 0:
-                for out in json.loads(r.stdout).values():
-                    idx   = out.get("current_mode")
-                    modes = out.get("modes", [])
-                    if not modes:
-                        continue
-                    m     = modes[idx] if isinstance(idx, int) else modes[0]
-                    scale = out.get("scale") or 1.0
-                    return int(m["width"] / scale), int(m["height"] / scale)
+                mons = json.loads(r.stdout)
+                # aceita tanto lista quanto dict, dependendo do formato exato do mmsg
+                mons = mons if isinstance(mons, list) else list(mons.values())
+                for out in mons:
+                    width  = out.get("width")
+                    height = out.get("height")
+                    scale  = out.get("scale") or 1.0
+                    if width and height:
+                        return int(width / scale), int(height / scale)
         except Exception:
             pass
-        log(f"aguardando niri... ({attempt+1}/20)")
+        log(f"aguardando mango... ({attempt+1}/20)")
         time.sleep(1)
     log("fallback 1920x1080")
     return 1920, 1080
 
 def trigger():
-    niri_cmd("action", "toggle-overview")
+    mango_cmd("dispatch", "toggleoverview")
 
 # deteccao de mouses
 def _caps(path):
@@ -101,13 +108,13 @@ async def do_resync(reason=""):
     suffix = (" [" + reason + "]") if reason else ""
     log("resync -> centro (" + str(int(cx)) + "," + str(int(cy)) + ")" + suffix)
 
-# resync ao acordar do suspend
-async def niri_event_watcher():
-    env = niri_env()
+# resync ao acordar do suspend (proxy: qualquer atualizacao de all-monitors)
+async def mango_event_watcher():
+    env = mango_env()
     while True:
         try:
             proc = await asyncio.create_subprocess_exec(
-                "niri", "msg", "event-stream",
+                "mmsg", "watch", "all-monitors",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.DEVNULL,
                 env=env,
@@ -116,16 +123,11 @@ async def niri_event_watcher():
                 line = raw.decode(errors="ignore").strip()
                 if not line:
                     continue
-                try:
-                    ev = json.loads(line)
-                except Exception:
-                    continue
-                if "ConfigLoaded" in ev:
-                    log("niri recarregou (suspend/resume?) -> resync")
-                    await do_resync("ConfigLoaded")
+                log("mango: all-monitors mudou (suspend/resume?) -> resync")
+                await do_resync("all-monitors")
             await proc.wait()
         except Exception as e:
-            log(f"event-stream erro: {e}")
+            log(f"watch all-monitors erro: {e}")
         await asyncio.sleep(3)
 
 # resync apos mouse parado
@@ -207,7 +209,7 @@ async def main():
     log(f"{W}x{H} corner={CORNER_SIZE}px cooldown={COOLDOWN}s idle-resync={IDLE_RESYNC}s")
     for path in sorted(glob.glob("/dev/input/event*")):
         spawn(path)
-    asyncio.ensure_future(niri_event_watcher())
+    asyncio.ensure_future(mango_event_watcher())
     asyncio.ensure_future(idle_watcher())
     await device_watcher()
 
@@ -218,17 +220,17 @@ in
 {
   home.packages = [ script ];
 
-  systemd.user.services.niri-hot-corner = {
+  systemd.user.services.mango-hot-corner = {
     Unit = {
-      Description = "Hot corner superior direito -> niri overview";
-      After   = [ "niri.service" ];
-      BindsTo = [ "niri.service" ];
+      Description = "Hot corner superior direito -> mango overview";
+      After   = [ "mango-session.target" ];
+      BindsTo = [ "mango-session.target" ];
     };
     Service = {
-      ExecStart = "${script}/bin/niri-hot-corner-right";
+      ExecStart = "${script}/bin/mango-hot-corner-right";
       Restart    = "on-failure";
       RestartSec = "2s";
     };
-    Install.WantedBy = [ "niri.service" ];
+    Install.WantedBy = [ "mango-session.target" ];
   };
 }

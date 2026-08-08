@@ -1,5 +1,5 @@
-# CopyQ — histórico de clipboard unificado (niri + bspwm).
-# niri → Mod+V (niri.nix) | bspwm → super+v (sxhkdrc)
+# CopyQ — histórico de clipboard unificado (mango + bspwm).
+# mango → Mod+V (mango.nix) | bspwm → super+v (sxhkdrc)
 
 { pkgs, ... }:
 

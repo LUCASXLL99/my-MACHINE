@@ -1,5 +1,5 @@
 # wlsunset — luz noturna para Fortaleza, CE (-3.7 / -38.5).
-# ConditionEnvironment não funciona aqui: é avaliado antes do niri exportar
+# ConditionEnvironment não funciona aqui: é avaliado antes do mango exportar
 # WAYLAND_DISPLAY ao bus, então usamos ExecStartPre com polling.
 
 { pkgs, ... }:
@@ -14,8 +14,8 @@ in
   systemd.user.services.wlsunset = {
     Unit = {
       Description = "Night light — wlsunset";
-      After   = [ "niri.service" ];
-      BindsTo = [ "niri.service" ];
+      After   = [ "mango-session.target" ];
+      BindsTo = [ "mango-session.target" ];
     };
     Service = {
       Type = "simple";
@@ -33,6 +33,6 @@ in
       Restart    = "on-failure";
       RestartSec = "5s";
     };
-    Install.WantedBy = [ "niri.service" ];
+    Install.WantedBy = [ "mango-session.target" ];
   };
 }

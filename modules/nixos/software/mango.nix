@@ -8,6 +8,9 @@
 #   - cursor + fonte de emoji que ele usa
 #   - mangohud (overlay de FPS, útil, leve)
 #   - config base do mango (gaps/animações), fácil de você editar depois
+#
+# xwayland-satellite (que estava aqui antes) foi removido: era necessário
+# só pro niri, que não embute Xwayland. O mango tem suporte nativo.
 
 {
   programs.mango.enable = true;
@@ -22,7 +25,6 @@
   };
 
   environment.systemPackages = [
-    pkgs.xwayland-satellite
     pkgs.bibata-cursors        # cursor usado no mango-fedora
     pkgs.noto-fonts-emoji      # google-noto-color-emoji-fonts
     pkgs.mangohud              # overlay de FPS/hardware, leve e opcional

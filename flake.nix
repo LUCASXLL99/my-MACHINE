@@ -19,7 +19,10 @@
     };
     mango = {
       url = "github:mangowm/mango";
-      inputs.nixpkgs.follows = "nixpkgs";
+      # nixpkgs-unstable, não nixpkgs (25.05 estável): o pacote do mango
+      # depende de libxcb-wm, que não existe ainda na 25.05 — dava
+      # "Function called without required argument libxcb-wm" no rebuild.
+      inputs.nixpkgs.follows = "nixpkgs-unstable";
     };
     opencode-nix = {
       url    = "github:dan-online/opencode-nix";

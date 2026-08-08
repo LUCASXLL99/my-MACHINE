@@ -1,7 +1,7 @@
 { ... }:
 {
   imports = [
-    ./niri.nix
+    ./mango.nix
     ./noctalia.nix
     ./wallpaper.nix
     ./hot-corner.nix

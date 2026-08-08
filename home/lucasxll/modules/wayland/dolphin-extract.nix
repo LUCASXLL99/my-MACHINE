@@ -2,8 +2,8 @@
 # dolphin-extract.nix
 # Script "dolphin-extract-selected": pega o(s) item(ns) selecionado(s)
 # na janela ATIVA do Dolphin e, se for .zip/.tar(.gz|.bz2|.xz)/.rar/.7z,
-# extrai automaticamente na mesma pasta. Ligado ao Ctrl+Alt+E no niri
-# (ver modules/wayland/niri.nix).
+# extrai automaticamente na mesma pasta. Ligado ao Ctrl+Alt+E no mango
+# (ver modules/wayland/mango.nix).
 #
 # NOTA: o método D-Bus org.kde.dolphin.MainWindow.selectedItems() foi
 # removido nas versões atuais do Dolphin (KF6, testado 6.9.3) — a
@@ -12,36 +12,44 @@
 # Dolphin, o que põe os itens selecionados na área de transferência
 # como text/uri-list, e lemos isso com wl-paste (Wayland).
 #
-# NOTA 2: org.kde.dolphin.MainWindow.isActiveWindow() SEMPRE retorna
-# false no niri (testado) — niri não é KWin e não repassa o estado de
-# ativação do Qt corretamente via Wayland. Por isso descobrimos a
-# janela focada perguntando pro PRÓPRIO niri via IPC (`niri msg --json
-# focused-window`), que reporta o app_id e pid corretos, e casamos o
-# pid com o nome do serviço D-Bus org.kde.dolphin-<pid>.
+# NOTA 2: org.kde.dolphin.MainWindow.isActiveWindow() SEMPRE retornava
+# false no niri (testado) — mango provavelmente tem o mesmo problema
+# (nenhum compositor wlroots/dwl repassa isso certo pro Qt). Por isso
+# descobrimos a janela focada perguntando pro PRÓPRIO mango via IPC
+# (`mmsg get focusing-client`), que deve reportar appid e pid, e
+# casamos o pid com o nome do serviço D-Bus org.kde.dolphin-<pid>.
+#
+# PORTADO niri → mango: troquei `niri msg --json focused-window` por
+# `mmsg get focusing-client`. Os nomes exatos dos campos no JSON de
+# retorno do mmsg eu não confirmei ao vivo (não consigo testar aqui) —
+# tentei `appid` primeiro (nome usado nas windowrule do mango) com
+# fallback pra `app_id`, e `pid` como no niri. Se não bater, veja o log
+# em /tmp/dolphin-extract-debug.log (a linha "focused-client: ...") e
+# ajusta os `jq -r` abaixo pros nomes de campo reais.
 # ─────────────────────────────────────────────────────────────
 { pkgs, ... }:
 
 let
   dolphin-extract-selected = pkgs.writeShellScriptBin "dolphin-extract-selected" ''
     set -uo pipefail
-    export PATH="${pkgs.kdePackages.qttools}/bin:${pkgs.unzip}/bin:${pkgs.gnutar}/bin:${pkgs.p7zip}/bin:${pkgs.unrar}/bin:${pkgs.libnotify}/bin:${pkgs.wl-clipboard}/bin:${pkgs.coreutils}/bin:${pkgs.gnused}/bin:${pkgs.niri}/bin:${pkgs.jq}/bin:$PATH"
+    export PATH="${pkgs.kdePackages.qttools}/bin:${pkgs.unzip}/bin:${pkgs.gnutar}/bin:${pkgs.p7zip}/bin:${pkgs.unrar}/bin:${pkgs.libnotify}/bin:${pkgs.wl-clipboard}/bin:${pkgs.coreutils}/bin:${pkgs.gnused}/bin:${pkgs.jq}/bin:$PATH"
 
     notify() { notify-send -a "Dolphin Extract" "$1" "''${2:-}"; }
 
     log="/tmp/dolphin-extract-debug.log"
     { echo "── run $(date '+%H:%M:%S') ──"; echo "DBUS_SESSION_BUS_ADDRESS=''${DBUS_SESSION_BUS_ADDRESS:-<unset>}"; } >> "$log"
 
-    # Pergunta pro niri qual é a janela focada (isActiveWindow do Qt não
-    # funciona no niri, ver NOTA 2 acima).
-    focused=$(niri msg --json focused-window 2>/dev/null || true)
+    # Pergunta pro mango qual é a janela focada (isActiveWindow do Qt não
+    # deve funcionar no mango também, ver NOTA 2 acima).
+    focused=$(mmsg get focusing-client 2>/dev/null || true)
     if [ -z "$focused" ] || [ "$focused" = "null" ]; then
       notify "Nenhuma janela focada"
       exit 0
     fi
 
-    app_id=$(printf '%s' "$focused" | jq -r '.app_id // empty')
+    app_id=$(printf '%s' "$focused" | jq -r '.appid // .app_id // empty')
     pid=$(printf '%s' "$focused" | jq -r '.pid // empty')
-    echo "focused-window: $focused" >> "$log"
+    echo "focused-client: $focused" >> "$log"
 
     if [ "$app_id" != "org.kde.dolphin" ] || [ -z "$pid" ]; then
       notify "A janela focada não é o Dolphin"

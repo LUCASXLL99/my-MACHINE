@@ -2,7 +2,7 @@
 {
   # programs.espanso não existe nesse home-manager (módulo recente demais
   # pro input travado no flake.lock) — instalando e configurando na mão,
-  # igual o niri.nix faz com xdg.configFile.
+  # igual o mango.nix faz com xdg.configFile.
   home.packages = [ pkgs.espanso-wayland ];
 
   xdg.configFile."espanso/config/default.yml".text = ''

@@ -18,7 +18,7 @@
 
     ../../modules/nixos/software/no-keyring.nix
     ../../modules/nixos/software/yazi-deps.nix
-    ../../modules/nixos/software/niri.nix
+    ../../modules/nixos/software/mango.nix
     ../../modules/nixos/software/rust-dev.nix
     ../../modules/nixos/software/wine.nix
     ../../modules/nixos/software/wallcards.nix
@@ -122,13 +122,18 @@
   '';
 
   # portal xdg
+  # xdg-desktop-portal-wlr (não -gnome) para ScreenCast/RemoteDesktop: o
+  # mango, ao contrário do niri, não imita a interface do Mutter — ver
+  # modules/nixos/software/mango.nix, que já instala o pacote wlr e
+  # habilita `xdg.portal.wlr.enable`. gtk continua cuidando de
+  # FileChooser/Settings normalmente.
   xdg.portal = {
     enable = true;
-    extraPortals = [ pkgs.xdg-desktop-portal-gnome pkgs.xdg-desktop-portal-gtk ];
-    config.niri = {
+    extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
+    config.mango = {
       default                                      = [ "gtk" ];
-      "org.freedesktop.impl.portal.ScreenCast"    = [ "gnome" ];
-      "org.freedesktop.impl.portal.RemoteDesktop" = [ "gnome" ];
+      "org.freedesktop.impl.portal.ScreenCast"    = [ "wlr" ];
+      "org.freedesktop.impl.portal.RemoteDesktop" = [ "wlr" ];
       "org.freedesktop.impl.portal.FileChooser"   = [ "gtk" ];
       "org.freedesktop.impl.portal.Settings"      = [ "gtk" ];
     };
@@ -180,13 +185,11 @@
       "https://cache.nixos.org"
       "https://noctalia.cachix.org"
       "https://pi.cachix.org"
-      "https://niri.cachix.org"
     ];
     trusted-public-keys = [
       "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
       "noctalia.cachix.org-1:pCOR47nnMEo5thcxNDtzWpOxNFQsBRglJzxWPp3dkU4="
       "pi.cachix.org-1:lGeoGJaZ5ZDabuRzkcD5EBTNnDM4HJ1vqeOxlWk1Flk="
-      "niri.cachix.org-1:Wv0OmO7PsuocRKzfry9N+KvbD843ZCEMiypnAjAK0Oo="
     ];
   };
   nix.gc = {

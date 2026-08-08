@@ -21,7 +21,9 @@
         "usb" "disk" "cdrom"
         "video" "audio" # v4l2loopback (câmera virtual OBS) + captura de áudio
       ];
-      hashedPassword = "$6$MBJkNgz.CaFcC137$ef7eNpBjGDv.ZZEN/fIVMP1TB1D4XMYQlTn3j65Gs3PeChs4e.2T.s07M0wRAx/EzwWlhQQsNj9K37rCD4Yk90";
+      # Senha "1" (a pedido do usuário — ver conversa: risco de segurança
+      # com sudo NOPASSWD conhecido e aceito).
+      hashedPassword = "$6$D18o9X.Uz4bWFKli$8O129whTx7eD33/ls38WTnCBGRB0qvJEbzqGy6giJGsaonnQDZFENQMsrDE7yxGBSfoaLaaKcqU64BVqUMkHv0";
       packages = [];
     };
   };
