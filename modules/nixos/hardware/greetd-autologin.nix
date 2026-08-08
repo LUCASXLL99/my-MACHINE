@@ -6,10 +6,11 @@
     restart = false;
     settings = rec {
       initial_session = {
-        # TODO(mango): confirme o nome do binário/pacote exposto pelo módulo
-        # `programs.mango` (ex.: `pkgs.mango`) — não veio no zip enviado pra
-        # eu conferir o caminho exato como fiz antes com `config.programs.niri.package`.
-        command = "${pkgs.mango}/bin/mango";
+        # Confirmado na doc oficial do módulo NixOS do mango: com
+        # `programs.mango.enable = true`, o binário `mango` já entra no
+        # PATH do sistema (não é um pacote de nixpkgs, então `pkgs.mango`
+        # não existe — daí o erro "attribute 'mango' missing").
+        command = "mango";
         user    = "lucasxll";
       };
       default_session = initial_session;
