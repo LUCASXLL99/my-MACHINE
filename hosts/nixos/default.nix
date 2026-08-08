@@ -7,6 +7,7 @@
     ../../modules/nixos/system/network.nix
     ../../modules/nixos/system/users.nix
     ../../modules/nixos/system/packages.nix
+    ../../modules/nixos/system/lock-before-suspend.nix
 
     ../../modules/nixos/hardware/sddm-reflect.nix
     ../../modules/nixos/hardware/greetd-autologin.nix
