@@ -6,11 +6,12 @@
     restart = false;
     settings = rec {
       initial_session = {
-        # Confirmado na doc oficial do módulo NixOS do mango: com
-        # `programs.mango.enable = true`, o binário `mango` já entra no
-        # PATH do sistema (não é um pacote de nixpkgs, então `pkgs.mango`
-        # não existe — daí o erro "attribute 'mango' missing").
-        command = "mango";
+        # Correção: "mango" solto (como a doc oficial mostra) depende do
+        # binário estar no PATH do processo do greetd — deu "binário não
+        # encontrado" no seu boot. Caminho completo do pacote, igual o
+        # arquivo original fazia com o niri, é mais confiável e não depende
+        # de PATH nenhum.
+        command = "${config.programs.mango.package}/bin/mango";
         user    = "lucasxll";
       };
       default_session = initial_session;
