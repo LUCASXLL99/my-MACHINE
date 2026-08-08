@@ -27,8 +27,8 @@
 #   - nomes exatos dos campos JSON do `mmsg get focusing-client`
 #     (dolphin-extract.nix)
 #   - `mmsg` glob do socket em hot-corner.nix
-#   - scroll do mouse (Mod+WheelScroll*) usa sintaxe `axisbind`, diferente
-#     de `bind` — não portei ainda, ver doc de mouse-gestures
+#   - alguns binds na seção "SEM EQUIVALENTE EXATO" abaixo (Home/End,
+#     Comma/Period, etc.) são aproximações — testa e ajusta se ficar estranho
 # ─────────────────────────────────────────────────────────────────────────
 
 { config, pkgs, inputs, ... }:
@@ -53,12 +53,38 @@
       tap_to_click                   = 1;
       disable_while_typing            = 1;
 
-      # ── VISUAL ───────────────────────────────────────────────────────
-      gappih = 8; gappiv = 8; gappoh = 8; gappov = 8;
+      # ── VISUAL — Tokyo Night, combinando com o Stylix/Noctalia ─────────
+      gappih = 8; gappiv = 8; gappoh = 10; gappov = 10;
       borderpx    = 2;
-      bordercolor = "0x30363dff";
-      focuscolor  = "0x7aa2f7ff";
-      border_radius = 20;
+      rootcolor   = "0x1a1b26ff"; # fundo do root, mesmo base00 do stylix
+      bordercolor = "0x30363dff"; # inativa
+      focuscolor  = "0x7aa2f7ff"; # ativa (azul tokyo night)
+      urgentcolor = "0xf7768eff"; # vermelho tokyo night (base08)
+      maximizescreencolor = "0x9ece6aff"; # verde (base0B)
+      scratchpadcolor      = "0xbb9af7ff"; # roxo (base0E)
+
+      border_radius = 14;
+      no_radius_when_single = 1; # sem cantos redondos quando é a única janela — visual mais "cheio de tela"
+
+      # blur otimizado (cacheia o wallpaper — muito mais leve na GPU
+      # integrada do Ryzen 5700U que muito blur "de verdade")
+      blur                    = 1;
+      blur_optimized          = 1;
+      blur_params_radius      = 6;
+      blur_params_num_passes  = 2;
+      blur_params_saturation  = 1.15; # levemente mais vivo, sem exagerar
+
+      # sombra só em janelas flutuantes (blueman, pavucontrol, copyq, PiP)
+      # — mantém as tiladas leves, sombra só ajuda a diferenciar o que tá
+      # "por cima"
+      shadows              = 1;
+      shadow_only_floating = 1;
+      shadows_size         = 12;
+      shadows_blur         = 18;
+      shadowscolor         = "0x00000088";
+
+      focused_opacity   = 1.0;
+      unfocused_opacity  = 0.94; # sutil, ajuda a achar a janela ativa sem ficar "piscando"
 
       animations              = 1;
       animation_type_open     = "none";  # equivalente ao "window-open { off; }" do niri
@@ -78,8 +104,14 @@
       ];
 
       # ── AUTOSTART ────────────────────────────────────────────────────
+      # NOTA: removi o dbus-update-activation-environment manual que tinha
+      # aqui antes — o mango já faz isso sozinho via `systemd.enable`
+      # (mango-session.target, ligado por padrão no módulo Home Manager),
+      # e ter os dois rodando ao mesmo tempo cria uma corrida: o
+      # noctalia-shell.service (que depende de graphical-session.target)
+      # podia tentar subir antes do WAYLAND_DISPLAY estar de fato no bus,
+      # e é bem provável que seja por isso que a barra sumiu.
       "exec-once" = [
-        "sh -c \"sleep 1 && dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP MANGO_INSTANCE_SIGNATURE\""
         "sh -c \"pkill mpris-proxy; mpris-proxy\""
         "sh -c \"sleep 2 && systemctl --user restart mouse-invert-y\""
         "sh -c \"sleep 5 && nm-applet --indicator\""
@@ -176,16 +208,34 @@
         "SUPER+CTRL,U,tagtoright"
         "SUPER+CTRL,I,tagtoleft"
 
-        # SEM EQUIVALENTE no mango (conceito de "coluna" não existe):
-        #   Mod+Home/End (focus-column-first/last)
-        #   Mod+Comma/Period (consume/expel window into/from column)
-        #   Mod+Alt+J/K (set-window-height)
-        #   Mod+Shift+V (switch-focus-between-floating-and-tiling)
-        #   Mod+Ctrl+F (expand-column-to-available-width)
-        #   Mod+BracketLeft/Right (consume-or-expel-window-left/right)
-        #   Mod+Shift+Page_Down/Up (move-workspace-down/up)
-        #   Mod+WheelScroll* — precisa de `axisbind`, sintaxe diferente,
-        #     ver https://mangowm.github.io/docs/bindings/mouse-gestures
+        # SEM EQUIVALENTE EXATO no mango, mas mapeei pro mais próximo que
+        # existe (em vez de deixar de fora) — testa e me fala se ficou
+        # estranho, ajusto:
+        "SUPER,Home,focusstack,prev"          # era focus-column-first
+        "SUPER,End,focusstack,next"           # era focus-column-last
+        "SUPER,Comma,groupjoin,left"          # era consume-window-into-column
+        "SUPER,Period,groupleave"             # era expel-window-from-column
+        "SUPER,BracketLeft,groupjoin,left"    # era consume-or-expel-window-left
+        "SUPER+ALT,J,smartresizewin,down"     # era set-window-height (só afeta floating no mango)
+        "SUPER+ALT,K,smartresizewin,up"
+        "SUPER+SHIFT,V,toggle_all_floating"   # era switch-focus-between-floating-and-tiling (aproximado)
+        "SUPER+CTRL,F,zoom"                   # era expand-column-to-available-width (aproximado: swap com master)
+
+        # AINDA sem equivalente (não achei nenhum dispatch parecido, então
+        # preferi não inventar):
+        #   Mod+Shift+Page_Down/Up — reordenar a posição da tag/workspace
+        #   em si (não é trocar de tag, é mudar a ORDEM das tags)
+      ];
+
+      axisbind = [
+        "SUPER,DOWN,focusdir,right"
+        "SUPER,UP,focusdir,left"
+        "SUPER,RIGHT,focusdir,right"
+        "SUPER,LEFT,focusdir,left"
+        "SUPER+CTRL,DOWN,viewtoright"
+        "SUPER+CTRL,UP,viewtoleft"
+        "SUPER+CTRL,RIGHT,exchange_client,right"
+        "SUPER+CTRL,LEFT,exchange_client,left"
       ];
 
       windowrule = [
@@ -194,6 +244,7 @@
         "isfloating:1,appid:copyq"
         "isfloating:1,title:^Picture-in-Picture$"
         "isfloating:1,appid:firefox$,title:^Picture-in-Picture$"
+        "noblur:1,appid:slurp" # ferramenta de seleção de área — blur atrapalha ver o que tá selecionando
       ];
       # opacity global (niri: window-rule { opacity 0.96; }) e
       # "draw-border-with-background false" não têm chave global clara na
