@@ -1,9 +1,7 @@
-# Aparência Dolphin/Qt/KDE unificada em Tokyo Night.
+# Aparência Dolphin/Qt/KDE unificada em Nord.
 # GTK e Qt (kvantum via qtct) agora são gerados pelo Stylix a partir do
-# esquema Tokyo Night (ver stylix.nix) — aqui ficam só os ajustes
+# esquema Nord (ver stylix.nix) — aqui ficam só os ajustes
 # específicos do Dolphin e do kdeglobals.
-# tela-icon-theme: tema de ícones do repo mango-fedora (theblackdon),
-# disponível como alternativa ao Papirus — o ativo continua Papirus-Dark.
 
 { pkgs, ... }:
 
@@ -21,42 +19,44 @@
     Theme=Papirus-Dark
 
     [General]
-    ColorScheme=TokyoNight
-    Name=Tokyo Night
+    ColorScheme=Nord
+    Name=Nord
     shadeSortColumn=true
-    font=Inter,10,-1,5,400,0,0,0,0,0
-    fixed=JetBrainsMono Nerd Font,10,-1,5,400,0,0,0,0,0
-    menuFont=Inter,10,-1,5,400,0,0,0,0,0
-    smallestReadableFont=Inter,8,-1,5,400,0,0,0,0,0
-    toolBarFont=Inter,9,-1,5,400,0,0,0,0,0
+    font=Inter,11,-1,5,400,0,0,0,0,0
+    fixed=JetBrainsMono Nerd Font,11,-1,5,400,0,0,0,0,0
+    menuFont=Inter,11,-1,5,400,0,0,0,0,0
+    smallestReadableFont=Inter,9,-1,5,400,0,0,0,0,0
+    toolBarFont=Inter,10,-1,5,400,0,0,0,0,0
 
     [KDE]
-    contrast=4
+    contrast=6
     widgetStyle=kvantum
 
     [Colors:Button]
-    BackgroundNormal=36,40,59
-    BackgroundAlternate=41,49,71
-    ForegroundNormal=192,202,245
+    BackgroundNormal=69,78,98
+    BackgroundAlternate=78,89,111
+    ForegroundNormal=255,255,255
 
     [Colors:View]
-    BackgroundNormal=26,27,38
-    BackgroundAlternate=36,40,59
-    ForegroundNormal=192,202,245
-    ForegroundLink=122,162,247
-    ForegroundVisited=187,154,247
+    # Fundo mais claro ainda (acima do surface1) p/ máxima legibilidade.
+    # Pedido: "aumente a claridade mais um pouco". Letras brancas puras.
+    BackgroundNormal=92,104,128
+    BackgroundAlternate=102,115,141
+    ForegroundNormal=255,255,255
+    ForegroundLink=255,255,255
+    ForegroundVisited=255,255,255
 
     [Colors:Window]
-    BackgroundNormal=36,40,59
-    ForegroundNormal=192,202,245
+    BackgroundNormal=56,64,78
+    ForegroundNormal=255,255,255
 
     [Colors:Selection]
-    BackgroundNormal=122,162,247
-    ForegroundNormal=26,27,38
+    BackgroundNormal=129,161,193
+    ForegroundNormal=46,52,64
 
     [Colors:Tooltip]
-    BackgroundNormal=41,49,71
-    ForegroundNormal=192,202,245
+    BackgroundNormal=92,104,128
+    ForegroundNormal=255,255,255
   '';
 
   xdg.configFile."dolphinrc".text = ''
@@ -77,5 +77,9 @@
 
     [PlacesPanel]
     IconSize=22
+
+    [Fonts]
+    GeneralFont=Inter,12
+    FixedFont=JetBrainsMono Nerd Font,12
   '';
 }

@@ -8,7 +8,7 @@
 # niri -- se não bater, ajusta em /run/user/$UID/ depois de logar no mango
 # (`ls /run/user/$(id -u)/`) e corrige o glob abaixo.
 
-{ pkgs, ... }:
+{ config, pkgs, ... }:
 
 let
   python = pkgs.python3.withPackages (ps: [ ps.evdev ]);
@@ -37,7 +37,13 @@ def log(msg):
 def mango_env():
     env  = {**os.environ}
     hits = glob.glob(f"/run/user/{os.getuid()}/mango.*.sock") or glob.glob(f"/run/user/{os.getuid()}/mango*")
-    sock = os.environ.get("MANGO_INSTANCE_SIGNATURE", hits[0] if hits else "")
+    sock = os.environ.get("MANGO_INSTANCE_SIGNATURE")
+    if not sock or not os.path.exists(sock):
+        # escolhe o socket mais recente (por mtime) — evita pegar um antigo
+        # depois do mango ter reiniciado e ficado com socket novo
+        candidates = [h for h in hits if os.path.exists(h)]
+        if candidates:
+            sock = max(candidates, key=os.path.getmtime)
     if sock and os.path.exists(sock):
         env["MANGO_INSTANCE_SIGNATURE"] = sock
     return env
@@ -228,6 +234,9 @@ in
     };
     Service = {
       ExecStart = "${script}/bin/mango-hot-corner-right";
+      # mmsg não herda o PATH do shell em systemd user — sem isso o hot-corner
+      # não acha o binário (`No such file or directory: 'mmsg'`).
+      Environment = "PATH=${config.wayland.windowManager.mango.package}/bin:/run/current-system/sw/bin";
       Restart    = "on-failure";
       RestartSec = "2s";
     };

@@ -1,4 +1,4 @@
-{ config, pkgs, lib, inputs, ... }:
+{ config, pkgs, lib, inputs, noctalia-patched, tui-kan-pkg, ... }:
 
 {
   imports = [
@@ -33,16 +33,18 @@
   # todos os targets abaixo não aplicam nada.
   stylix.enable = true;
   stylix.base16Scheme = {
-    scheme = "Tokyo Night Dark";
-    author = "lucasxll (adaptado de enkia/tokyo-night-vscode-theme)";
-    base00 = "1a1b26"; base01 = "16161e"; base02 = "292e42";
-    base03 = "565f89"; base04 = "9aa5ce"; base05 = "c0caf5";
-    base06 = "cfc9c2"; base07 = "d5d6db"; base08 = "f7768e";
-    base09 = "ff9e64"; base0A = "e0af68"; base0B = "9ece6a";
-    base0C = "73daca"; base0D = "7aa2f7"; base0E = "bb9af7";
-    base0F = "db4b4b";
+    scheme = "Nord";
+    author = "lucasxll (Nord, base16)";
+    # Escuro, neutro, alto contraste (texto e5e9f0 quase branco sobre 2e3440).
+    # Pedido: "tema neutro mais fácil de ler caracteres em todo o sistema".
+    base00 = "2e3440"; base01 = "3b4252"; base02 = "434c5e";
+    base03 = "4c566a"; base04 = "d8dee9"; base05 = "e5e9f0";
+    base06 = "eceff4"; base07 = "8fbcbb"; base08 = "bf616a";
+    base09 = "d08770"; base0A = "ebcb8b"; base0B = "a3be8c";
+    base0C = "88c0d0"; base0D = "81a1c1"; base0E = "b48ead";
+    base0F = "5e81ac";
   };
-  stylix.image = config.lib.stylix.pixel "base00"; # #1a1b26 (fundo do esquema)
+  stylix.image = config.lib.stylix.pixel "base00"; # #2e3440 (fundo do esquema)
   stylix.fonts = {
     monospace = { package = pkgs.nerd-fonts.jetbrains-mono; name = "JetBrainsMono Nerd Font"; };
     sansSerif = { package = pkgs.inter; name = "Inter"; };
@@ -54,7 +56,7 @@
   home-manager = {
     useGlobalPkgs       = true;
     useUserPackages     = true;
-    extraSpecialArgs    = { inherit inputs; };
+    extraSpecialArgs    = { inherit inputs noctalia-patched tui-kan-pkg; };
     backupFileExtension = "backup";
     # sharedModules do stylix NÃO entram aqui: o módulo NixOS do stylix já faz
     # autoImport (stylix.homeManagerIntegration.autoImport=true) — importar o

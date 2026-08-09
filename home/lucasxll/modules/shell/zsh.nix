@@ -21,6 +21,9 @@
 
       f  = "yazi";
       fm = "dolphin . &";
+      # tui-kan (kanban TUI) — portado do theblackdon
+      kan = "tui-kan";
+      ff  = "fastfetch";
 
       flip-x     = ''xrandr --output "$(xrandr | awk '/ connected/{print $1; exit}')" --reflect x'';
       flip-reset = ''xrandr --output "$(xrandr | awk '/ connected/{print $1; exit}')" --reflect normal'';
@@ -87,6 +90,43 @@
 
       _prompt_at_bottom() { printf '\n%.0s' $(seq 1 $(( LINES / 4 ))); }
       precmd_functions+=(_prompt_at_bottom)
+
+      # ── Busca fuzzy (portado do theblackdon/mango-fedora, fish → zsh) ──
+      # ffcd: cd fuzzy em diretórios (ignora .git/node_modules/.venv/target/.cache)
+      ffcd() {
+        local q="$1" depth=7 sel
+        local opts="--preview 'ls -p {} | grep /' --preview-window=right:60% --height 80% --layout=reverse --cycle"
+        [ -n "$q" ] && opts="$opts --query='$q'"
+        sel=$(find . -maxdepth "$depth" \( -name .git -o -name node_modules \
+              -o -name .venv -o -name target -o -name .cache \) -prune \
+              -o -type d -print 2>/dev/null | eval "fzf $opts") || return 1
+        [ -d "$sel" ] && builtin cd "$sel"
+      }
+      # ffe: achar arquivo por nome e abrir no editor
+      ffe() {
+        local q="$1" sel
+        local opts="--height 80% --layout=reverse --preview-window=right:60% --cycle"
+        [ -n "$q" ] && opts="$opts --query='$q'"
+        sel=$(find . -maxdepth 5 -type f 2>/dev/null | eval "fzf $opts") || return 1
+        ''${EDITOR:-nvim} "$sel"
+      }
+      # ffec: buscar por conteúdo (grep) e abrir no editor
+      ffec() {
+        local pat="$1"
+        [ -z "$pat" ] && { echo "uso: ffec <padrão>"; return 1; }
+        local sel
+        sel=$(grep -irl -- "$pat" . 2>/dev/null | fzf --height 80% --layout=reverse \
+              --cycle --preview-window=right:60% \
+              --preview 'bat --color always --style=plain --paging=never {}' 2>/dev/null) || return 1
+        ''${EDITOR:-nvim} "$sel"
+      }
+      # fflog: histórico de comandos com fzf (Ctrl+R aprimorado)
+      fflog() {
+        local sel
+        sel=$(fc -l 1 | fzf --tac --height 80% --layout=reverse --cycle \
+              --query="$1" 2>/dev/null) || return 1
+        eval "''${sel#*$'\t'}"
+      }
     '';
   };
 

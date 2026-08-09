@@ -1,4 +1,4 @@
-{ config, pkgs, inputs, ... }:
+{ config, pkgs, inputs, tui-kan-pkg, ... }:
 {
   imports = [
     (inputs.noctalia.homeModules.default)
@@ -22,6 +22,7 @@
     file-roller
     p7zip
     unrar
+    tui-kan-pkg
   ];
   fonts.fontconfig.enable = true;
 }

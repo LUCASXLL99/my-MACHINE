@@ -35,6 +35,33 @@
     system        = "x86_64-linux";
     pkgs-unstable = inputs.nixpkgs-unstable.legacyPackages.${system};
 
+    # ── Noctalia com MangoService patcheado ────────────────────────────────
+    # O Noctalia upstream lê os workspaces via protocolo dwl-ipc-unstable-v2,
+    # que o mangowm NÃO implementa ("DWL is not available", barra sem tags).
+    # Este override substitui o MangoService.qml por uma versão que usa o IPC
+    # próprio do mango (`mmsg watch all-tags` / `mmsg dispatch view,N`).
+    noctalia-patched = inputs.noctalia.packages.${system}.default.overrideAttrs (old: {
+      installPhase = old.installPhase + ''
+        cp ${./home/lucasxll/modules/wayland/MangoService.patch.qml} \
+          $out/share/noctalia-shell/Services/Compositor/MangoService.qml
+      '';
+    });
+
+    # ── tui-kan (kanban TUI em Rust, theblackdon) ─────────────────────────
+    # fetchGit do Codeberg (Forgejo). Projeto Rust auto-contido; compilado
+    # via rustPlatform.buildRustPackage usando o Cargo.lock do repo.
+    tui-kan-src = builtins.fetchGit {
+      url = "https://codeberg.org/theblackdon/tui-kan.git";
+      rev = "3e3f8b17b4b3d04add2d1fa59d27b567ae86a705";
+    };
+    tui-kan-pkg = pkgs-unstable.rustPlatform.buildRustPackage {
+      pname   = "tui-kan";
+      version = "0.1.0";
+      src     = tui-kan-src;
+      cargoLock.lockFile = "${tui-kan-src}/Cargo.lock";
+      meta.mainProgram = "tui-kan";
+    };
+
     # Overlays e allowUnfree entram aqui, na instanciação do pkgs — não como
     # as opções `nixpkgs.overlays`/`nixpkgs.config`. Com
     # `home-manager.useGlobalPkgs = true`, o home-manager exige que essas
@@ -56,7 +83,7 @@
   {
     nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
       inherit system;
-      specialArgs = { inherit inputs pkgs-unstable; };
+      specialArgs = { inherit inputs pkgs-unstable noctalia-patched tui-kan-pkg; };
       modules = [
         { nixpkgs.pkgs = pkgs; }
         mango.nixosModules.mango

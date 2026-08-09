@@ -6,5 +6,6 @@
     ./lf.nix
     ./rofi.nix
     ./coding-agents.nix
+    ./fastfetch.nix
   ];
 }

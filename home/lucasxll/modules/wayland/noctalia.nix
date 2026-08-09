@@ -1,25 +1,31 @@
-{ config, pkgs, inputs, ... }:
+{ config, pkgs, inputs, noctalia-patched, ... }:
 
 {
   programs.noctalia-shell = {
     enable = true;
+    # Usa o pacote PATCHED (MangoService via mmsg) também no binário do PATH
+    # (/etc/profiles/per-user/lucasxll/bin/noctalia-shell). Sem isso o IPC do
+    # bind `SUPER+D` usava o pacote upstream cujo QS_CONFIG_PATH não casava com
+    # a instância rodando → "No running instances", launcher não abria.
+    package = noctalia-patched;
 
     colors = {
-      mSurface          = "#1a1b26";
-      mSurfaceVariant   = "#24283b";
-      mHover            = "#292e42";
-      mOnHover          = "#c0caf5";
-      mPrimary          = "#7aa2f7";
-      mOnPrimary        = "#1a1b26";
-      mSecondary        = "#9aa5ce";
-      mOnSecondary      = "#1a1b26";
-      mTertiary         = "#bb9af7";
-      mOnTertiary       = "#1a1b26";
-      mOnSurface        = "#c0caf5";
-      mOnSurfaceVariant = "#9aa5ce";
-      mOutline          = "#3d4466";
-      mError            = "#f7768e";
-      mOnError          = "#1a1b26";
+      # Nord (pedido: tema neutro, fácil de ler caracteres). Texto branco puro.
+      mSurface          = "#2e3440";
+      mSurfaceVariant   = "#434c5e";
+      mHover            = "#4c566a";
+      mOnHover          = "#ffffff";
+      mPrimary          = "#81a1c1";
+      mOnPrimary        = "#2e3440";
+      mSecondary        = "#ffffff";
+      mOnSecondary      = "#2e3440";
+      mTertiary         = "#b48ead";
+      mOnTertiary       = "#2e3440";
+      mOnSurface        = "#ffffff";
+      mOnSurfaceVariant = "#ffffff";
+      mOutline          = "#4c566a";
+      mError            = "#bf616a";
+      mOnError          = "#2e3440";
       mShadow           = "#000000";
     };
 
@@ -43,7 +49,11 @@
         radiusRatio            = 0.8;
         enableShadows          = true;
         enableBlurBehind       = true;
-        lockOnSuspend          = true;
+        # lockOnSuspend = false: não trava a tela ao suspender (pedido do
+        # usuário — não queria digitar a senha "123" ao acordar). O sistema
+        # só suspende direto. lock-before-suspend user service já foi
+        # removido antes (BecomeMonitor sem permissão).
+        lockOnSuspend          = false;
         showChangelogOnStartup = false;
         telemetryEnabled       = false;
         compactLockScreen      = false;
@@ -134,7 +144,10 @@
     };
     Service = {
       # Caminho absoluto obrigatório: systemd user não herda o PATH do shell.
-      ExecStart  = "${inputs.noctalia.packages.${pkgs.system}.default}/bin/noctalia-shell";
+      # O PATH inclui o binário `mmsg` do mango (usado pelo MangoService
+      # patcheado p/ ler os workspaces) + as deps de runtime do noctalia.
+      ExecStart  = "${noctalia-patched}/bin/noctalia-shell";
+      Environment = "PATH=${config.wayland.windowManager.mango.package}/bin:${noctalia-patched}/bin:${pkgs.wl-clipboard}/bin:${pkgs.brightnessctl}/bin:${pkgs.wlsunset}/bin:${pkgs.wlr-randr}/bin:${pkgs.playerctl}/bin:/run/current-system/sw/bin";
       Restart    = "on-failure";
       RestartSec = "3s";
     };

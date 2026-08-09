@@ -72,15 +72,20 @@
       tap_to_click                   = 1;
       disable_while_typing            = 1;
 
-      # ── VISUAL — Tokyo Night, combinando com o Stylix/Noctalia ─────────
-      gappih = 8; gappiv = 8; gappoh = 10; gappov = 10;
-      borderpx    = 2;
-      rootcolor   = "0x1a1b26ff"; # fundo do root, mesmo base00 do stylix
-      bordercolor = "0x30363dff"; # inativa
-      focuscolor  = "0x7aa2f7ff"; # ativa (azul tokyo night)
-      urgentcolor = "0xf7768eff"; # vermelho tokyo night (base08)
-      maximizescreencolor = "0x9ece6aff"; # verde (base0B)
-      scratchpadcolor      = "0xbb9af7ff"; # roxo (base0E)
+      # ── VISUAL — Nord, combinando com o Stylix/Noctalia ──────────────
+      # Gaps externas (gappoh/gappov) grandes: quando apertar SUPER+F
+      # (togglemaximizescreen) a janela maximizada usa essas gaps como margem
+      # → fica "encolhida", menor que a tela (estética estilo niri), junto com
+      # a animação MOVE (animation_duration_move=500) que faz crescer/encolher
+      # suavemente. Pedido do usuário.
+      gappih = 6; gappiv = 6; gappoh = 26; gappov = 26;
+      borderpx    = 1; # borda fina — pedido: "bordas das janelas mais pequenas"
+      rootcolor   = "0x2e3440ff"; # fundo do root, base00 do Nord
+      bordercolor = "0x4c566aff"; # inativa (nord3)
+      focuscolor  = "0x81a1c1ff"; # ativa (nord8 azul)
+      urgentcolor = "0xbf616aff"; # vermelho (nord11)
+      maximizescreencolor = "0xa3be8cff"; # verde (nord14)
+      scratchpadcolor      = "0xb48eadff"; # roxo (nord15)
 
       border_radius = 14;
       no_radius_when_single = 1; # sem cantos redondos quando é a única janela — visual mais "cheio de tela"
@@ -105,14 +110,65 @@
       focused_opacity   = 1.0;
       unfocused_opacity  = 0.94; # sutil, ajuda a achar a janela ativa sem ficar "piscando"
 
-      animations              = 1;
-      animation_type_open     = "none";  # equivalente ao "window-open { off; }" do niri
-      animation_type_close    = "fade";
-      animation_duration_open  = 200;
-      animation_duration_close  = 250;
+      # ── ANIMAÇÕES ────────────────────────────────────────────────────
+      # Portado do mango-fedora (theblackdon): zoom suave em vez de fade.
+      # Curvas ease-out-quint (0.46,1.0,0.29,1) deixam o movimento "gostoso
+      # de mexer"; close é mais rápido pra não atrasar a troca de janela.
+      animations             = 1;
+      layer_animations       = 1;
+      animation_type_open    = "zoom";
+      animation_type_close   = "zoom";
+      animation_fade_in      = 1;
+      animation_fade_out     = 1;
+      tag_animation_direction = 0; # vertical, como os tags 1-9
+      zoom_initial_ratio     = 0.4;
+      zoom_end_ratio         = 0.8;
+      animation_duration_move  = 500;
+      animation_duration_open  = 400;
+      animation_duration_tag   = 350;
+      animation_duration_close = 250;
+      animation_duration_focus = 0;
+      animation_curve_move  = "0.46,1.0,0.29,1";
+      animation_curve_open  = "0.46,1.0,0.29,1";
+      animation_curve_tag   = "0.46,1.0,0.29,1";
+      animation_curve_close = "0.08,0.92,0,1";
+      animation_curve_focus = "0.46,1.0,0.29,1";
 
       cursor_theme = "Bibata-Modern-Classic";
       cursor_size  = 24;
+
+      # ── LAYOUT — scroll tiling estilo niri ───────────────────────────────
+      # TODAS as 9 tags usam `scroller` (colunas roláveis, como o niri) — assim
+      # o scroll tiling fica ativo desde o boot, em qualquer tag. Pedido do
+      # usuário: "deixa o mango tiling automático sempre que eu abrir o
+      # computador, experiência próxima do niri".
+      # Navegação: SUPER+ALT+setas (scroller_stack) e SUPER+ALT+E (expandir).
+      tagrule = [
+        "id:1,layout_name:scroller"
+        "id:2,layout_name:scroller"
+        "id:3,layout_name:scroller"
+        "id:4,layout_name:scroller"
+        "id:5,layout_name:scroller"
+        "id:6,layout_name:scroller"
+        "id:7,layout_name:scroller"
+        "id:8,layout_name:scroller"
+        "id:9,layout_name:scroller"
+      ];
+
+      scroller_structs             = 20;
+      # Proporção da janela FOCADA (master) em LARGURA: 0.97 = quase a tela
+      # toda, só uma fatia fina da janela ao lado aparece (confortável
+      # visualmente — usuário pediu 0.97).
+      scroller_default_proportion  = 0.97;
+      scroller_focus_center        = 1;   # foca a coluna central (como niri)
+      scroller_prefer_center       = 0;
+      scroller_proportion_preset   = "0.5,0.8,1.0";
+      scroller_default_proportion_single = 1.0;
+      # Transição automática entre janelas/colunas ao levar o cursor à borda.
+      # `allow_speed` = gatilho: troca quando o cursor cruza a borda com
+      # velocidade ≥5 (bem fácil de disparar). Usuário testando 5.
+      edge_scroller_pointer_focus  = 1;
+      edge_scroller_focus_allow_speed = 5.0;
 
       # ── ENV ──────────────────────────────────────────────────────────
       env = [
@@ -129,8 +185,8 @@
         "SUPER+SHIFT,Return,spawn,wezterm"
 
         "SUPER,D,spawn,noctalia-shell ipc call launcher toggle"
-        "SUPER,R,spawn,rofi -show drun"
-        "SUPER,Space,spawn,rofi -show drun"
+        "SUPER,R,spawn,noctalia-shell ipc call launcher toggle"
+        "SUPER,Space,spawn,noctalia-shell ipc call launcher toggle"
 
         "SUPER,E,spawn,dolphin"
         "SUPER,B,spawn,blueman-manager"
@@ -170,7 +226,9 @@
 
         "SUPER,W,killclient"
         "SUPER+SHIFT,Q,killclient"
-        "SUPER,Semicolon,spawn_shell,pkill mpvpaper || mpvpaper -o 'no-audio loop' '*' ~/Pictures/wallpapers/wallpaper.mp4"
+        # mpvpaper (wallpaper animado) — SUPER+CTRL+B (tecla home row; era
+        # SUPER+Semicolon, que no Corne v4 vive na camada SYM, difícil)
+        "SUPER+CTRL+B,spawn_shell,pkill mpvpaper || mpvpaper -o 'no-audio loop' '*' ~/Pictures/wallpapers/wallpaper.mp4"
 
         # focus (mantive o mapeamento H=direita / S=esquerda do niri original)
         "SUPER,H,focusdir,right"
@@ -202,44 +260,39 @@
         "SUPER+SHIFT,T,togglefloating"
         "SUPER+CTRL,R,switch_proportion_preset"
 
-        "SUPER+ALT,H,setmfact,-0.05"
-        "SUPER+ALT,L,setmfact,+0.05"
+        # ── Ajustes de janela — SUPER+CTRL (polegar, confortável no Corne v4)
+        # setmfact: H/L na home row direita (era SUPER+ALT+H/L, ALT difícil)
+        "SUPER+CTRL,H,setmfact,-0.05"
+        "SUPER+CTRL,L,setmfact,+0.05"
 
         "SUPER,C,centerwin"
         "SUPER,Tab,focuslast"
         "SUPER,G,toggleglobal"
-        "SUPER+ALT,S,toggle_scratchpad"
-        "SUPER,O,toggleoverview"
+        # Scratchpad — SUPER+CTRL+Space (polegar, era SUPER+ALT+S)
+        "SUPER+CTRL,Space,toggle_scratchpad"
+        # SUPER+O (toggleoverview) REMOVIDO: o mango-nightly crasha ao abrir o
+        # overview (overview_layout_card → wlr_scene_buffer set_source_box →
+        # abort) — derrubava a sessão gráfica. O hot corner também foi
+        # desativado por isso.
 
         "SUPER,U,viewtoright"
         "SUPER,I,viewtoleft"
-        "SUPER,Page_Down,viewtoright"
-        "SUPER,Page_Up,viewtoleft"
-        "SUPER+CTRL,U,tagtoright"
-        "SUPER+CTRL,I,tagtoleft"
+        # tagtoright/toleft já via SUPER+CTRL+SHIFT+J/K acima
 
-        # SEM EQUIVALENTE EXATO no mango, mas mapeei pro mais próximo que
-        # existe (em vez de deixar de fora) — testa e me fala se ficou
-        # estranho, ajusto:
-        "SUPER,Home,focusstack,prev"          # era focus-column-first
-        "SUPER,End,focusstack,next"           # era focus-column-last
-        "SUPER,Comma,groupjoin,left"          # era consume-window-into-column
-        "SUPER,Period,groupleave"             # era expel-window-from-column
-        "SUPER,BracketLeft,groupjoin,left"    # era consume-or-expel-window-left
-        "SUPER+ALT,J,smartresizewin,down"     # era set-window-height (só afeta floating no mango)
-        "SUPER+ALT,K,smartresizewin,up"
-        "SUPER+SHIFT,V,toggle_all_floating"   # era switch-focus-between-floating-and-tiling (aproximado)
-        "SUPER+CTRL,F,zoom"                   # era expand-column-to-available-width (aproximado: swap com master)
-
-        # AINDA sem equivalente (não achei nenhum dispatch parecido, então
-        # preferi não inventar):
-        #   Mod+Shift+Page_Down/Up — reordenar a posição da tag/workspace
-        #   em si (não é trocar de tag, é mudar a ORDEM das tags)
+        # ── SCROLLER (scroll tiling estilo niri) ──────────────────────
+        # Navegação de colunas: SUPER+CTRL+U/I/O/P (home row esquerda +
+        # direita, confortável) — era SUPER+ALT+setas (setas na camada SYM).
+        "SUPER+CTRL,U,scroller_stack,left"
+        "SUPER+CTRL,I,scroller_stack,right"
+        "SUPER+CTRL,O,scroller_stack,up"
+        "SUPER+CTRL,P,scroller_stack,down"
+        "SUPER+CTRL,E,set_proportion,1.0"
+        "SUPER+CTRL,Q,set_proportion,0.5"
 
         # ── MODO RESIZE (modal) ────────────────────────────────────
-        # SUPER+Alt+R entra no modo; setas redimensionam a janela;
-        # Esc/Return volta ao modo default. Ver keymode abaixo.
-        "SUPER+ALT,R,setkeymode,resize"
+        # SUPER+CTRL+SHIFT+R entra no modo (era SUPER+ALT+R, ALT difícil);
+        # setas redimensionam; Esc/Return volta. Ver keymode abaixo.
+        "SUPER+CTRL+SHIFT,R,setkeymode,resize"
       ];
 
       axisbind = [
