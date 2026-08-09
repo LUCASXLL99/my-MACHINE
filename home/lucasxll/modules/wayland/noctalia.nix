@@ -1,4 +1,4 @@
-{ pkgs, inputs, lib, ... }:
+{ config, pkgs, inputs, lib, ... }:
 
 {
   programs.noctalia-shell = {
@@ -70,7 +70,7 @@
       # wallpaper.mp4 ainda dá pra ligar manualmente via SUPER+Semicolon.
       wallpaper = {
         enabled                   = true;
-        directory                 = "/home/lucasxll/Pictures/wallpapers";
+        directory                 = "${config.home.homeDirectory}/Pictures/wallpapers";
         automationEnabled         = true;
         wallpaperChangeMode       = "random";
         randomIntervalSec         = 600;
@@ -123,11 +123,14 @@
 
   # Serviço systemd em vez de spawn-at-startup: garante que WAYLAND_DISPLAY
   # já está no bus antes do noctalia conectar (status=203/EXEC sem caminho absoluto).
+  # Depende de mango-session.target (que BindsTo=graphical-session.target):
+  # o autostart_sh do mango dispara `systemctl --user start mango-session.target`
+  # quando a sessão sobe — foi isso que tava faltando pra barra aparecer.
   systemd.user.services.noctalia-shell = {
     Unit = {
       Description = "Noctalia Shell — bar, notifications, wallpaper, lock, idle";
-      After       = [ "graphical-session.target" ];
-      PartOf      = [ "graphical-session.target" ];
+      After       = [ "mango-session.target" ];
+      PartOf      = [ "mango-session.target" ];
     };
     Service = {
       # Caminho absoluto obrigatório: systemd user não herda o PATH do shell.
@@ -135,7 +138,7 @@
       Restart    = "on-failure";
       RestartSec = "3s";
     };
-    Install.WantedBy = [ "graphical-session.target" ];
+    Install.WantedBy = [ "mango-session.target" ];
   };
 
   # ── LOCK ANTES DE SUSPENDER (inibidor de verdade) ───────────────────────────
@@ -153,7 +156,7 @@
     Unit = {
       Description = "Trava a tela e segura o suspend até o lock estar pronto";
       After        = [ "noctalia-shell.service" ];
-      PartOf       = [ "graphical-session.target" ];
+      PartOf       = [ "mango-session.target" ];
     };
     Service = {
       Type = "simple";
@@ -192,6 +195,6 @@
       Restart    = "always";
       RestartSec = "1s";
     };
-    Install.WantedBy = [ "graphical-session.target" ];
+    Install.WantedBy = [ "mango-session.target" ];
   };
 }

@@ -77,7 +77,6 @@
       buildInputs = [ pkgs.makeWrapper ];
       postBuild = ''
         wrapProgram $out/bin/android-studio \
-          --set   DISPLAY                     ":1" \
           --set   _JAVA_AWT_WM_NONREPARENTING "1" \
           --set   ELECTRON_PASSWORD_STORE      "basic" \
           --set   SECRET_BACKEND              "gnome-libsecret" \

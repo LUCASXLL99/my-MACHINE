@@ -43,6 +43,25 @@
   wayland.windowManager.mango = {
     enable = true;
 
+    # ── AUTOSTART (via autostart_sh, NÃO exec-once) ─────────────────────
+    # O módulo Home Manager do mango só roda a ativação do systemd user
+    # session (dbus-update-activation-environment + `systemctl --user start
+    # mango-session.target`, que pula pro graphical-session.target) DENTRO do
+    # autostart.sh gerado por esta opção. Se a gente puser os comandos em
+    # `settings.exec-once`, o autostart.sh nunca é criado → o target nunca
+    # sobe → o noctalia-shell.service (WantedBy=graphical-session.target)
+    # nunca inicia → a barra não aparece. Foi exatamente isso que aconteceu.
+    # Corrigido movendo os comandos pra cá.
+    autostart_sh = ''
+      pkill mpris-proxy; mpris-proxy &
+      sleep 2 && sudo systemctl restart mouse-invert
+      sleep 5 && nm-applet --indicator &
+      sleep 5 && systemctl --user start mango-blueman-applet
+      # Sem sessão Plasma, não há kded rodando pra manter o ksycoca em dia —
+      # sem isso, "Abrir com" no Dolphin fica sem listar nenhum app instalado.
+      sleep 2 && kbuildsycoca6 --noincremental
+    '';
+
     settings = {
       # ── INPUT ────────────────────────────────────────────────────────
       xkb_rules_layout          = "us"; # ver nota original: firmware QMK espera posições US
@@ -101,24 +120,6 @@
         "QT_QPA_PLATFORM,wayland"
         "ELECTRON_OZONE_PLATFORM_HINT,auto"
         "_JAVA_AWT_WM_NONREPARENTING,1"
-      ];
-
-      # ── AUTOSTART ────────────────────────────────────────────────────
-      # NOTA: removi o dbus-update-activation-environment manual que tinha
-      # aqui antes — o mango já faz isso sozinho via `systemd.enable`
-      # (mango-session.target, ligado por padrão no módulo Home Manager),
-      # e ter os dois rodando ao mesmo tempo cria uma corrida: o
-      # noctalia-shell.service (que depende de graphical-session.target)
-      # podia tentar subir antes do WAYLAND_DISPLAY estar de fato no bus,
-      # e é bem provável que seja por isso que a barra sumiu.
-      "exec-once" = [
-        "sh -c \"pkill mpris-proxy; mpris-proxy\""
-        "sh -c \"sleep 2 && systemctl --user restart mouse-invert-y\""
-        "sh -c \"sleep 5 && nm-applet --indicator\""
-        "sh -c \"sleep 5 && systemctl --user start mango-blueman-applet\""
-        # Sem sessão Plasma, não há kded rodando pra manter o ksycoca em dia —
-        # sem isso, "Abrir com" no Dolphin fica sem listar nenhum app instalado.
-        "sh -c \"sleep 2 && kbuildsycoca6 --noincremental\""
       ];
 
       # ── ATALHOS ──────────────────────────────────────────────────────
@@ -304,25 +305,4 @@
       RestartSec = "3s";
     };
   };
-
-  # ── OVERRIDES ──────────────────────────────────────────────────────────────
-  # Drop-ins (só sobrescrevem a diretiva indicada, preservam o resto do
-  # unit original) — ver comentário original em niri.nix sobre por que
-  # `systemd.user.services.<nome> = {...}` do Home Manager não serve aqui.
-  #
-  # PORTADO: NIRI_SOCKET → WAYLAND_DISPLAY (checagem mais genérica de
-  # "sessão Wayland ativa", já que o mango não define uma env var própria
-  # equivalente exposta globalmente do mesmo jeito).
-  xdg.configFile."systemd/user/picom.service.d/override.conf".text = ''
-    [Unit]
-    ConditionEnvironment=!WAYLAND_DISPLAY
-  '';
-  xdg.configFile."systemd/user/app-picom@autostart.service.d/override.conf".text = ''
-    [Unit]
-    ConditionEnvironment=!WAYLAND_DISPLAY
-  '';
-  xdg.configFile."systemd/user/dunst.service.d/override.conf".text = ''
-    [Unit]
-    Conflicts=mango-session.target
-  '';
 }

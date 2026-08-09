@@ -7,16 +7,8 @@
     ../../modules/nixos/system/network.nix
     ../../modules/nixos/system/users.nix
     ../../modules/nixos/system/packages.nix
-    ../../modules/nixos/system/lock-before-suspend.nix
-
-    ../../modules/nixos/hardware/sddm-reflect.nix
-    ../../modules/nixos/hardware/greetd-autologin.nix
-    ./hardware-configuration.nix
-    ../../modules/nixos/hardware/input-left-handed.nix
-    ../../modules/nixos/hardware/bluetooth-audio.nix
-    ../../modules/nixos/hardware/kanata-keyboard
-
     ../../modules/nixos/software/no-keyring.nix
+    ../../modules/nixos/software/yazi-deps.nix
     ../../modules/nixos/software/yazi-deps.nix
     ../../modules/nixos/software/mango.nix
     ../../modules/nixos/software/rust-dev.nix
@@ -25,6 +17,12 @@
     ../../modules/nixos/software/kbuildsycoca-autofix.nix
     ../../modules/nixos/software/default-terminal.nix
     ../../modules/nixos/software/obs-wayland.nix
+
+    ../../modules/nixos/hardware/greetd-autologin.nix
+    ./hardware-configuration.nix
+    ../../modules/nixos/hardware/input-left-handed.nix
+    ../../modules/nixos/hardware/bluetooth-audio.nix
+    ../../modules/nixos/hardware/kanata-keyboard
 
     inputs.home-manager.nixosModules.home-manager
     inputs.stylix.nixosModules.stylix
@@ -92,13 +90,12 @@
     ];
   };
 
-  # display
+  # display — sessão Wayland (mango) via greetd. X11/bspwm era legado da era
+  # niri/hyprland e nunca roda: o xkb layout é configurado no mango config
+  # (wayland/mango.nix: xkb_rules_layout). services.xserver desligado pra não
+  # instalar o stack X11 inteiro à toa.
   services.xserver = {
-    enable      = true;
-    xkb.layout  = "br";
-    xkb.variant = "nodeadkeys";
-    windowManager.bspwm.enable    = true;
-    displayManager.lightdm.enable = false;
+    enable = false;
   };
 
   # audio
@@ -131,9 +128,14 @@
     domain = "*"; type = "hard"; item = "maxlogins"; value = "4";
   }];
 
+  # Reaplica a inversão de eixo do mouse quando um mouse é plugado. O serviço
+  # real é `mouse-invert` (systemd system, ver input-left-handed.nix) — a
+  # TAG "systemd" com SYSTEMD_USER_WANTS só alcança o manager do *usuário*, e
+  # o serviço não existe lá. Usamos caminho absoluto no store (obrigatório p/
+  # udev rules: o sandbox de build não tem /run/current-system) + RUN.
   services.udev.extraRules = ''
     SUBSYSTEM=="input", ACTION=="add", ENV{ID_INPUT_MOUSE}=="1", \
-      TAG+="systemd", ENV{SYSTEMD_USER_WANTS}="mouse-invert-y.service"
+      RUN+="${pkgs.systemd}/bin/systemctl restart mouse-invert"
   '';
 
   # portal xdg

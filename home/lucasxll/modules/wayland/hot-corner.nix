@@ -52,9 +52,9 @@ def get_screen_dims():
         try:
             r = mango_cmd("get", "all-monitors")
             if r.returncode == 0:
-                mons = json.loads(r.stdout)
-                # aceita tanto lista quanto dict, dependendo do formato exato do mmsg
-                mons = mons if isinstance(mons, list) else list(mons.values())
+                data = json.loads(r.stdout)
+                # mmsg retorna {"monitors": [ ... ]}, não um array solto
+                mons = data.get("monitors") or []
                 for out in mons:
                     width  = out.get("width")
                     height = out.get("height")

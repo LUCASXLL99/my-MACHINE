@@ -9,6 +9,7 @@
     tldr jq yq-go
     delta lazygit
     tokei glow xh trashy
+    chafa poppler
   ];
 
   xdg.configFile."lf/lfrc".text = ''
